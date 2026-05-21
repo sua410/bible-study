@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4a7c59">
+<title>성경 문제집 - 매일 공부</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root {
+  --primary: #4a7c59;
+  --primary-dark: #3a6347;
+  --primary-light: #e8f0ea;
+  --accent: #d4a574;
+  --bg: #fafaf7;
+  --card: #ffffff;
+  --text: #2d3a32;
+  --text-light: #6b7568;
+  --border: #e1e4dc;
+  --error: #c0392b;
+  --success: #27ae60;
+  --warn: #e67e22;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 80px;
+  min-height: 100vh;
+}
+header {
+  background: var(--primary);
+  color: white;
+  padding: 14px 16px;
+  margin: 0 -16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+header h1 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.user-info {
+  font-size: 13px;
+  opacity: 0.9;
+}
+.btn {
+  display: inline-block;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.btn:hover { background: var(--primary-dark); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary {
+  background: white;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.btn-secondary:hover { background: var(--primary-light); }
+.btn-block { display: block; width: 100%; margin-bottom: 8px; }
+.btn-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+.btn-grade { padding: 14px 8px; font-size: 14px; }
+.btn-again { background: var(--error); }
+.btn-hard { background: var(--warn); }
+.btn-good { background: var(--primary); }
+.btn-easy { background: var(--success); }
+
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border);
+}
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--card);
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+  border: 1px solid var(--border);
+}
+.stat-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+}
+
+.q-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.q-tag {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.q-text {
+  font-size: 16px;
+  margin-bottom: 14px;
+  white-space: pre-wrap;
+  word-break: keep-all;
+}
+.q-body {
+  background: #f6f5ef;
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  border-left: 3px solid var(--accent);
+}
+.option {
+  display: block;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: all 0.15s;
+}
+.option:hover { background: var(--primary-light); border-color: var(--primary); }
+.option.selected { background: var(--primary-light); border-color: var(--primary); font-weight: 500; }
+.option.correct { background: #d4edda; border-color: var(--success); }
+.option.incorrect { background: #f8d7da; border-color: var(--error); }
+
+.answer-box {
+  background: var(--primary-light);
+  border-left: 4px solid var(--primary);
+  padding: 14px;
+  border-radius: 6px;
+  margin-top: 14px;
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+.answer-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+textarea, input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  resize: vertical;
+  min-height: 80px;
+}
+textarea:focus, input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+nav.tabs {
+  display: flex;
+  background: white;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+nav.tabs button {
+  flex: 1;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-light);
+}
+nav.tabs button.active {
+  background: var(--primary);
+  color: white;
+  font-weight: 500;
+}
+
+.empty {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-light);
+}
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--primary);
+  transition: width 0.3s;
+}
+
+.book-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.book-item {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+}
+.book-item:hover { border-color: var(--primary); }
+.book-count {
+  color: var(--text-light);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 100;
+}
+.toast.show { opacity: 1; }
+
+.hidden { display: none !important; }
+
+@media (max-width: 480px) {
+  header h1 { font-size: 16px; }
+  .card { padding: 16px; }
+  .q-text { font-size: 15px; }
+  .stat-num { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>📖 성경 문제집</h1>
+    <div class="user-info" id="userInfo">로그아웃 상태</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="study">오늘 공부</button>
+    <button data-tab="browse">전체 보기</button>
+    <button data-tab="stats">진도</button>
+    <button data-tab="settings">설정</button>
+  </nav>
+
+  <!-- 오늘 공부 탭 -->
+  <section id="tab-study">
+    <div id="studyView"></div>
+  </section>
+
+  <!-- 전체 보기 탭 -->
+  <section id="tab-browse" class="hidden">
+    <div id="browseView"></div>
+  </section>
+
+  <!-- 진도 탭 -->
+  <section id="tab-stats" class="hidden">
+    <div id="statsView"></div>
+  </section>
+
+  <!-- 설정 탭 -->
+  <section id="tab-settings" class="hidden">
+    <div class="card">
+      <h2 style="margin-bottom: 12px;">계정</h2>
+      <div id="authView"></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom: 12px;">학습 설정</h2>
+      <label style="display:block; margin-bottom: 10px;">
+        하루에 새 문제 몇 개?
+        <input type="number" id="newPerDay" min="1" max="50" value="5" style="width:80px; padding:6px;">
+      </label>
+      <label style="display:block;">
+        하루 복습 한도 (최대)
+        <input type="number" id="reviewMax" min="5" max="200" value="30" style="width:80px; padding:6px;">
+      </label>
+      <button class="btn btn-secondary" style="margin-top: 12px;" onclick="saveSettings()">저장</button>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom: 12px;">데이터</h2>
+      <button class="btn btn-secondary btn-block" onclick="exportData()">내 진도 내보내기 (JSON)</button>
+      <button class="btn btn-secondary btn-block" onclick="document.getElementById('importFile').click()">진도 가져오기</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-secondary btn-block" onclick="resetProgress()" style="color: var(--error); border-color: var(--error);">진도 초기화</button>
+    </div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ===========================
+// 문제 데이터 (창세기 샘플 20개 + 암송성구 2개)
+// ===========================
+const QUESTIONS = [
+  {id:"gen-001", book:"창세기", chapter:1, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"( )에 하나님이 ( )를 창조하시니라 땅이 ( )하고 ( )하며 흑암이 ( ) 위에 있고 ( )은 수면 위에 운행하시니라" (창 1:1-2)',
+   answer:"태초 / 천지 / 혼돈 / 공허 / 깊음 / 하나님의 영"},
+
+  {id:"gen-002", book:"창세기", chapter:1, type:"multiple",
+   question:"하나님의 천지 창조 때에 밤낮이 구분되고, 해와 달과 별들이 만들어진 날은 언제입니까? (창 1)",
+   options:["첫째 날","둘째 날","셋째 날","넷째 날"],
+   answer:3},
+
+  {id:"gen-003", book:"창세기", chapter:1, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"하나님이 이르시되 ( )을 따라 ( )대로 우리가 ( )을 만들고 그들로 바다의 물고기와 하늘의 새와 가축과 온 땅과 땅에 기는 모든 것을 ( ) 하자" (창 1:26)',
+   answer:"우리의 형상 / 우리의 모양 / 사람 / 다스리게"},
+
+  {id:"gen-004", book:"창세기", chapter:1, type:"short",
+   question:"하나님은 최초의 인간에게 무엇을 먹을거리로 주셨습니까? (창 1)",
+   answer:"씨 맺는 모든 채소, 씨 가진 열매 맺는 모든 나무"},
+
+  {id:"gen-005", book:"창세기", chapter:2, type:"short",
+   question:"에덴 동산 가운데에 있던 두 종류의 나무는 무엇 무엇입니까? (창 2)",
+   answer:"생명나무, 선악을 알게 하는 나무"},
+
+  {id:"gen-006", book:"창세기", chapter:2, type:"short",
+   question:"여호와 하나님은 사람을 에덴 동산에 두시고 어떤 일을 맡기셨습니까? (창 2)",
+   answer:"에덴동산을 경작하고 지키는 일"},
+
+  {id:"gen-007", book:"창세기", chapter:2, type:"multiple",
+   question:"여호와 하나님이 아담에게 먹지 말라고 하신 것은 무엇입니까? (창 2)",
+   options:["생명을 주는 나무의 열매","선악을 알게 하는 나무의 열매","믿음을 주는 나무의 열매","사랑을 알게 하는 나무의 열매"],
+   answer:1},
+
+  {id:"gen-008", book:"창세기", chapter:2, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"이러므로 남자가 ( )를 떠나 그의 아내와 ( )하여 둘이 ( )을 이룰지로다" (창 2:24)',
+   answer:"부모 / 합 / 한몸"},
+
+  {id:"gen-009", book:"창세기", chapter:3, type:"multiple",
+   question:"다음 중 하나님이 아담과 하와에게 내리신 저주가 아닌 것은 무엇입니까? (창 3)",
+   options:["임신과 출산의 고통","얼굴에 땀을 흘려야 먹을 것을 얻음","종신토록 흙을 먹어야 함","땅이 가시덤불과 엉겅퀴를 냄"],
+   answer:2},
+
+  {id:"gen-010", book:"창세기", chapter:3, type:"multiple",
+   question:"'하와'라는 이름의 뜻은 무엇입니까? (창 3)",
+   options:["여자","생명을 주는 자","갈빗대","흙"],
+   answer:1},
+
+  {id:"gen-011", book:"창세기", chapter:4, type:"multiple",
+   question:"가인이 여호와께 드린 제물은 무엇입니까? (창 4)",
+   options:["땅의 소산","염소의 첫 새끼","양의 첫 새끼","양의 기름"],
+   answer:0},
+
+  {id:"gen-012", book:"창세기", chapter:4, type:"multiple",
+   question:"가인의 자손 중 수금과 퉁소를 잡는 자의 조상이 된 사람은 누구입니까? (창 4)",
+   options:["유발","야발","두발가인","아다"],
+   answer:0},
+
+  {id:"gen-013", book:"창세기", chapter:4, type:"multiple",
+   question:"하나님께서 죽은 아벨 대신에 아담에게 주신 아들은 누구입니까? (창 4)",
+   options:["에노스","셋","셈","야벳"],
+   answer:1},
+
+  {id:"gen-014", book:"창세기", chapter:5, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"에녹은 육십오 세에 ( )를 낳았고 므두셀라를 낳은 후 삼백 년을 하나님과 ( )하며 자녀들을 낳았으며 그는 삼백육십오 세를 살았더라 에녹이 하나님과 ( )하더니 하나님이 그를 데려가시므로 ( )에 있지 아니하였더라" (창 5)',
+   answer:"므두셀라 / 동행 / 동행 / 세상"},
+
+  {id:"gen-015", book:"창세기", chapter:5, type:"short",
+   question:"창세기에 나오는 사람 중 가장 오래 살았던 므두셀라의 향년은 몇 세입니까? (창 5)",
+   answer:"969세"},
+
+  {id:"gen-016", book:"창세기", chapter:9, type:"short",
+   question:"노아 홍수 이후 하나님이 다시는 물로 세상을 멸하지 않으시겠다는 언약의 표시로 주신 것은 무엇입니까? (창 9)",
+   answer:"무지개"},
+
+  {id:"gen-017", book:"창세기", chapter:12, type:"short",
+   question:"하나님이 아브람에게 본토 친척 아비 집을 떠나 가라고 하신 곳은 어디입니까? (창 12)",
+   answer:"여호와께서 보여주실 땅 (가나안)"},
+
+  {id:"gen-018", book:"창세기", chapter:17, type:"short",
+   question:"아브라함과 그의 아들 이스마엘이 할례를 받을 때 그들의 나이는 각각 몇 세였습니까? (창 17)",
+   answer:"아브라함 99세, 이스마엘 13세"},
+
+  {id:"gen-019", book:"창세기", chapter:22, type:"short",
+   question:"아브라함이 이삭을 번제로 바치려 한 사건을 '아케다(Aqedah)'라고 부르는데, 이는 창세기 몇 장에 나옵니까? (창 22)",
+   answer:"창세기 22장"},
+
+  {id:"gen-020", book:"창세기", chapter:50, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"요셉이 그들에게 이르되 두려워하지 마소서 내가 ( )을 대신하리이까 당신들은 나를 ( )하려 하였으나 하나님은 그것을 ( )으로 바꾸사 오늘과 같이 많은 백성의 ( )을 구원하게 하시려 하셨나니" (창 50)',
+   answer:"하나님 / 해 / 선 / 생명"},
+
+  {id:"verse-001", book:"시편", chapter:1, type:"verse",
+   question:"시편 1편 1절을 암송하세요",
+   reference:"시 1:1",
+   answer:"복 있는 사람은 악인들의 꾀를 따르지 아니하며 죄인들의 길에 서지 아니하며 오만한 자들의 자리에 앉지 아니하고"},
+
+  {id:"verse-002", book:"잠언", chapter:1, type:"verse",
+   question:"잠언 1편 7절을 암송하세요",
+   reference:"잠 1:7",
+   answer:"여호와를 경외하는 것이 지식의 근본이거늘 미련한 자는 지혜와 훈계를 멸시하느니라"}
+];
+
+// ===========================
+// 상태 관리
+// ===========================
+const STORAGE_KEY = "bible_workbook_v1";
+const SETTINGS_KEY = "bible_workbook_settings";
+
+let state = {
+  progress: {},   // {qId: {ef, interval, repetitions, dueDate, lastReviewed, lapses}}
+  user: null      // {uid, name, email} when logged in
+};
+let settings = {
+  newPerDay: 5,
+  reviewMax: 30
+};
+
+let currentQueue = [];
+let currentIdx = 0;
+let currentCard = null;
+let revealed = false;
+
+// ===========================
+// SM-2 알고리즘
+// ===========================
+function initProgress(qId) {
+  return {
+    ef: 2.5,
+    interval: 0,
+    repetitions: 0,
+    dueDate: new Date().toISOString(),
+    lastReviewed: null,
+    lapses: 0,
+    isNew: true
+  };
+}
+
+function updateSM2(prog, quality) {
+  // quality: 0=다시, 3=어려움, 4=보통, 5=쉬움
+  const now = new Date();
+  prog.lastReviewed = now.toISOString();
+  prog.isNew = false;
+
+  if (quality < 3) {
+    // 다시 - 10분 후 다시
+    prog.repetitions = 0;
+    prog.interval = 0;
+    prog.lapses = (prog.lapses || 0) + 1;
+    const due = new Date(now.getTime() + 10 * 60 * 1000);
+    prog.dueDate = due.toISOString();
+  } else {
+    prog.repetitions += 1;
+    if (prog.repetitions === 1) {
+      prog.interval = 1;
+    } else if (prog.repetitions === 2) {
+      prog.interval = 3;
+    } else {
+      prog.interval = Math.round(prog.interval * prog.ef);
+    }
+    // EF 업데이트
+    prog.ef = prog.ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    if (prog.ef < 1.3) prog.ef = 1.3;
+    // 쉬움이면 interval 보너스
+    if (quality === 5) prog.interval = Math.round(prog.interval * 1.3);
+    const due = new Date(now.getTime() + prog.interval * 24 * 60 * 60 * 1000);
+    prog.dueDate = due.toISOString();
+  }
+  return prog;
+}
+
+// ===========================
+// 큐 빌딩
+// ===========================
+function buildQueue() {
+  const now = new Date();
+  const dueCards = [];
+  const newCards = [];
+
+  QUESTIONS.forEach(q => {
+    const p = state.progress[q.id];
+    if (!p) {
+      newCards.push(q);
+    } else if (new Date(p.dueDate) <= now) {
+      dueCards.push({q, p});
+    }
+  });
+
+  // 정렬: 오래 지난 것부터
+  dueCards.sort((a, b) => new Date(a.p.dueDate) - new Date(b.p.dueDate));
+  const dueLimited = dueCards.slice(0, settings.reviewMax).map(x => x.q);
+
+  // 셔플 새 카드
+  shuffle(newCards);
+  const newLimited = newCards.slice(0, settings.newPerDay);
+
+  // 섞어서: 복습 70%, 새 카드 30% 정도 비율
+  return interleave(dueLimited, newLimited);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function interleave(reviews, news) {
+  const result = [];
+  const total = reviews.length + news.length;
+  if (total === 0) return [];
+  let ri = 0, ni = 0;
+  for (let i = 0; i < total; i++) {
+    // 대략 4:1 비율 (복습:새것)
+    const wantNew = (news.length > ni) && (i % 4 === 2 || reviews.length <= ri);
+    if (wantNew) result.push(news[ni++]);
+    else if (ri < reviews.length) result.push(reviews[ri++]);
+    else if (ni < news.length) result.push(news[ni++]);
+  }
+  return result;
+}
+
+// ===========================
+// 화면 렌더링
+// ===========================
+function renderStudy() {
+  const view = document.getElementById('studyView');
+  if (currentQueue.length === 0) {
+    currentQueue = buildQueue();
+    currentIdx = 0;
+  }
+  if (currentIdx >= currentQueue.length || currentQueue.length === 0) {
+    view.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🎉</div>
+        <h2 style="margin-bottom: 8px;">오늘 공부 끝!</h2>
+        <p>잘 하셨어요. 내일 다시 만나요.</p>
+        <button class="btn" style="margin-top: 20px;" onclick="refreshQueue()">새 문제 더 풀기</button>
+      </div>`;
+    return;
+  }
+  currentCard = currentQueue[currentIdx];
+  revealed = false;
+  renderCard();
+}
+
+function refreshQueue() {
+  currentQueue = buildQueue();
+  currentIdx = 0;
+  if (currentQueue.length === 0) {
+    showToast("새 문제가 더 없어요");
+    return;
+  }
+  renderStudy();
+}
+
+function renderCard() {
+  const q = currentCard;
+  const view = document.getElementById('studyView');
+  const typeLabel = {
+    "multiple": "객관식",
+    "fill": "빈칸 채우기",
+    "short": "주관식",
+    "verse": "암송"
+  }[q.type] || "문제";
+
+  const total = currentQueue.length;
+  const cur = currentIdx + 1;
+  const progress = Math.round(((cur-1) / total) * 100);
+
+  let cardHTML = `
+    <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+    <div class="card">
+      <div class="q-meta">
+        <span class="q-tag">${typeLabel}</span>
+        <span>${cur} / ${total} · ${q.book} ${q.chapter ? q.chapter+'장' : ''}</span>
+      </div>
+      <div class="q-text">${escapeHtml(q.question)}</div>
+  `;
+
+  if (q.body) {
+    cardHTML += `<div class="q-body">${escapeHtml(q.body)}</div>`;
+  }
+
+  if (q.type === "multiple") {
+    cardHTML += '<div id="optionsBox">';
+    q.options.forEach((opt, i) => {
+      const mark = ['①','②','③','④','⑤'][i] || (i+1)+'.';
+      cardHTML += `<div class="option" data-idx="${i}" onclick="selectOption(${i})">${mark} ${escapeHtml(opt)}</div>`;
+    });
+    cardHTML += '</div>';
+    cardHTML += `<button id="checkBtn" class="btn btn-block" style="margin-top:12px;" onclick="checkMultiple()" disabled>정답 확인</button>`;
+  } else {
+    cardHTML += `
+      <textarea id="userAnswer" placeholder="답을 적어보세요 (선택 사항 - 머릿속으로 떠올린 뒤 정답 보기를 눌러도 돼요)"></textarea>
+      <button class="btn btn-block" style="margin-top:12px;" onclick="revealAnswer()">정답 보기</button>
+    `;
+  }
+
+  cardHTML += `<div id="answerArea"></div></div>`;
+  view.innerHTML = cardHTML;
+}
+
+let selectedOption = -1;
+function selectOption(i) {
+  selectedOption = i;
+  document.querySelectorAll('.option').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+  });
+  document.getElementById('checkBtn').disabled = false;
+}
+
+function checkMultiple() {
+  const q = currentCard;
+  const correct = q.answer;
+  const opts = document.querySelectorAll('.option');
+  opts.forEach((el, idx) => {
+    el.style.pointerEvents = 'none';
+    if (idx === correct) el.classList.add('correct');
+    else if (idx === selectedOption) el.classList.add('incorrect');
+  });
+  document.getElementById('checkBtn').style.display = 'none';
+  showGradeButtons(selectedOption === correct);
+}
+
+function revealAnswer() {
+  revealed = true;
+  const q = currentCard;
+  const area = document.getElementById('answerArea');
+  area.innerHTML = `
+    <div class="answer-box">
+      <div class="answer-label">정답</div>
+      ${escapeHtml(q.answer)}
+    </div>
+  `;
+  showGradeButtons();
+}
+
+function showGradeButtons(autoGraded = null) {
+  const area = document.getElementById('answerArea');
+  const helpText = autoGraded === true ? '<p style="margin-top:14px; color: var(--success); font-weight:500;">✓ 맞췄어요!</p>' :
+                   autoGraded === false ? '<p style="margin-top:14px; color: var(--error); font-weight:500;">✗ 틀렸어요. 다시 보고 평가해주세요.</p>' :
+                   '<p style="margin-top:14px; font-size:13px; color: var(--text-light);">얼마나 잘 알고 있었나요? 솔직하게 평가하면 더 효과적으로 복습할 수 있어요.</p>';
+  area.innerHTML += helpText + `
+    <div class="btn-row">
+      <button class="btn btn-grade btn-again" onclick="grade(0)">다시<br><small style="opacity:.8;font-size:11px;">10분 후</small></button>
+      <button class="btn btn-grade btn-hard" onclick="grade(3)">어려움<br><small style="opacity:.8;font-size:11px;">짧게</small></button>
+      <button class="btn btn-grade btn-good" onclick="grade(4)">보통<br><small style="opacity:.8;font-size:11px;">정상</small></button>
+      <button class="btn btn-grade btn-easy" onclick="grade(5)">쉬움<br><small style="opacity:.8;font-size:11px;">길게</small></button>
+    </div>
+  `;
+}
+
+function grade(quality) {
+  const q = currentCard;
+  let p = state.progress[q.id] || initProgress(q.id);
+  p = updateSM2(p, quality);
+  state.progress[q.id] = p;
+  saveProgress();
+  currentIdx++;
+  selectedOption = -1;
+  renderStudy();
+}
+
+// ===========================
+// 다른 탭들
+// ===========================
+function renderBrowse() {
+  const view = document.getElementById('browseView');
+  const byBook = {};
+  QUESTIONS.forEach(q => {
+    if (!byBook[q.book]) byBook[q.book] = [];
+    byBook[q.book].push(q);
+  });
+  let html = '<div class="card"><h2 style="margin-bottom: 12px;">책별 문제</h2><div class="book-list">';
+  Object.entries(byBook).forEach(([book, qs]) => {
+    const done = qs.filter(q => state.progress[q.id] && !state.progress[q.id].isNew).length;
+    html += `<div class="book-item">
+      <div style="font-weight:500;">${book}</div>
+      <div class="book-count">${done} / ${qs.length} 학습 시작</div>
+    </div>`;
+  });
+  html += '</div></div>';
+  view.innerHTML = html;
+}
+
+function renderStats() {
+  const view = document.getElementById('statsView');
+  const total = QUESTIONS.length;
+  const started = Object.keys(state.progress).length;
+  const due = QUESTIONS.filter(q => {
+    const p = state.progress[q.id];
+    return p && new Date(p.dueDate) <= new Date();
+  }).length;
+  const newToday = QUESTIONS.filter(q => !state.progress[q.id]).length;
+
+  // 평균 EF (학습한 카드의 어려움 정도)
+  const progs = Object.values(state.progress);
+  const avgEf = progs.length ? (progs.reduce((s, p) => s + p.ef, 0) / progs.length).toFixed(2) : '-';
+  const totalLapses = progs.reduce((s, p) => s + (p.lapses || 0), 0);
+
+  // 자주 틀리는 문제 Top 5
+  const lapses = QUESTIONS
+    .map(q => ({q, lapses: (state.progress[q.id]?.lapses || 0)}))
+    .filter(x => x.lapses > 0)
+    .sort((a, b) => b.lapses - a.lapses)
+    .slice(0, 5);
+
+  let html = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">${started}</div><div class="stat-label">학습 시작</div></div>
+      <div class="stat-box"><div class="stat-num">${due}</div><div class="stat-label">오늘 복습</div></div>
+      <div class="stat-box"><div class="stat-num">${newToday}</div><div class="stat-label">새 문제</div></div>
+    </div>
+    <div class="card">
+      <h2 style="margin-bottom:10px;">학습 현황</h2>
+      <p style="margin-bottom: 6px;">전체 문제: <b>${total}개</b></p>
+      <p style="margin-bottom: 6px;">평균 난이도(EF): <b>${avgEf}</b> <small style="color: var(--text-light);">(높을수록 쉽게 외우는 편)</small></p>
+      <p>총 틀린 횟수: <b>${totalLapses}회</b></p>
+    </div>
+  `;
+
+  if (lapses.length > 0) {
+    html += '<div class="card"><h2 style="margin-bottom:10px;">자주 틀리는 문제</h2>';
+    lapses.forEach(({q, lapses}) => {
+      html += `<div style="padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;">
+        <div style="color: var(--text-light); font-size: 12px;">${q.book} ${q.chapter}장 · ${lapses}회 틀림</div>
+        <div>${escapeHtml(q.question.substring(0, 80))}${q.question.length > 80 ? '...' : ''}</div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  view.innerHTML = html;
+}
+
+function renderAuth() {
+  const view = document.getElementById('authView');
+  if (state.user) {
+    view.innerHTML = `
+      <p>로그인됨: <b>${state.user.name || state.user.email}</b></p>
+      <p style="font-size: 13px; color: var(--text-light); margin-top: 6px;">진도가 자동으로 클라우드에 동기화됩니다.</p>
+      <button class="btn btn-secondary" style="margin-top: 12px;" onclick="signOut()">로그아웃</button>
+    `;
+  } else {
+    view.innerHTML = `
+      <p style="margin-bottom: 12px;">현재 진도는 이 기기에만 저장되고 있어요.</p>
+      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">구글 로그인하면 폰과 PC에서 진도를 자동 동기화할 수 있어요.</p>
+      <button class="btn" onclick="signIn()" id="googleSignInBtn">
+        🔐 구글로 로그인 (Firebase 설정 후 활성화)
+      </button>
+      <p style="font-size: 12px; color: var(--text-light); margin-top: 14px;">
+        ※ 이 프로토타입은 아직 Firebase 설정 전이에요. 다음 단계에서 활성화됩니다.
+      </p>
+    `;
+  }
+}
+
+function signIn() {
+  showToast("Firebase 설정이 필요해요. 다음 단계에서 안내드릴게요.");
+}
+function signOut() {
+  state.user = null;
+  renderAuth();
+  document.getElementById('userInfo').textContent = '로그아웃 상태';
+}
+
+// ===========================
+// 저장/불러오기
+// ===========================
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress));
+  } catch(e) {
+    console.error('저장 실패', e);
+  }
+}
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state.progress = JSON.parse(raw);
+    const settingsRaw = localStorage.getItem(SETTINGS_KEY);
+    if (settingsRaw) settings = {...settings, ...JSON.parse(settingsRaw)};
+  } catch(e) {
+    console.error('불러오기 실패', e);
+  }
+}
+function saveSettings() {
+  settings.newPerDay = parseInt(document.getElementById('newPerDay').value) || 5;
+  settings.reviewMax = parseInt(document.getElementById('reviewMax').value) || 30;
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  showToast("설정이 저장되었어요");
+}
+function exportData() {
+  const data = JSON.stringify({progress: state.progress, settings, exportedAt: new Date().toISOString()}, null, 2);
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bible-progress-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.progress) state.progress = data.progress;
+      if (data.settings) settings = {...settings, ...data.settings};
+      saveProgress();
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      showToast("진도를 가져왔어요");
+      currentQueue = [];
+      renderStudy();
+    } catch(e) {
+      showToast("파일이 올바르지 않아요");
+    }
+  };
+  reader.readAsText(file);
+}
+function resetProgress() {
+  if (!confirm('정말 모든 진도를 초기화할까요? 되돌릴 수 없어요.')) return;
+  state.progress = {};
+  saveProgress();
+  currentQueue = [];
+  showToast("초기화 완료");
+  renderStudy();
+}
+
+// ===========================
+// 유틸
+// ===========================
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ===========================
+// 탭 전환
+// ===========================
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('section[id^="tab-"]').forEach(s => s.classList.add('hidden'));
+    document.getElementById('tab-' + tab).classList.remove('hidden');
+    if (tab === 'study') renderStudy();
+    if (tab === 'browse') renderBrowse();
+    if (tab === 'stats') renderStats();
+    if (tab === 'settings') {
+      renderAuth();
+      document.getElementById('newPerDay').value = settings.newPerDay;
+      document.getElementById('reviewMax').value = settings.reviewMax;
+    }
+  });
+});
+
+// ===========================
+// 초기 실행
+// ===========================
+loadProgress();
+renderStudy();
+</script>
+
+</body>
+</html>
