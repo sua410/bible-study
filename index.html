@@ -287,11 +287,126 @@ nav.tabs button.active {
 
 .hidden { display: none !important; }
 
+.menu-card {
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 20px;
+}
+.menu-card:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.06); }
+.menu-icon { font-size: 36px; flex-shrink: 0; }
+.menu-text { flex: 1; }
+.menu-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.menu-desc { font-size: 13px; color: var(--text-light); }
+.menu-arrow { color: var(--text-light); font-size: 22px; }
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+}
+.icon-btn:hover { background: rgba(255,255,255,0.15); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 4px 16px;
+  font-family: inherit;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.book-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 12px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 15px;
+  transition: all 0.15s;
+}
+.book-card:hover { border-color: var(--primary); }
+.book-card-name { font-weight: 500; }
+.book-card-meta { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+
+.chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.chapter-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 8px;
+  cursor: pointer;
+  text-align: center;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+.chapter-card:hover { border-color: var(--primary); background: var(--primary-light); }
+.chapter-card-num { font-weight: 600; }
+.chapter-card-count { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.chapter-card.all { grid-column: 1 / -1; background: var(--primary-light); border-color: var(--primary); }
+
+.verse-hint {
+  background: #fffbf2;
+  border: 1px dashed var(--accent);
+  padding: 40px 20px;
+  border-radius: 12px;
+  margin-bottom: 14px;
+  font-size: 64px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+.verse-blank {
+  background: #fffbf2;
+  border-left: 3px solid var(--accent);
+  padding: 14px;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  line-height: 1.9;
+  word-break: keep-all;
+}
+.verse-blank .blank {
+  display: inline-block;
+  min-width: 60px;
+  border-bottom: 2px solid var(--accent);
+  text-align: center;
+  color: transparent;
+  user-select: none;
+}
+
 @media (max-width: 480px) {
   header h1 { font-size: 16px; }
   .card { padding: 16px; }
   .q-text { font-size: 15px; }
-  .stat-num { font-size: 20px; }
+  .menu-icon { font-size: 30px; }
+  .menu-title { font-size: 16px; }
+  .chapter-grid { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
 </head>
@@ -299,90 +414,30 @@ nav.tabs button.active {
 
 <div class="app">
   <header>
-    <h1>📖 성경 문제집</h1>
-    <div class="user-info" id="userInfo">로그아웃 상태</div>
+    <h1 style="cursor:pointer;" onclick="navTo('home')">📖 성경 문제집</h1>
+    <div class="header-right">
+      <div class="user-info" id="userInfo">로그아웃</div>
+      <button class="icon-btn" onclick="navTo('settings')" title="설정">⚙️</button>
+    </div>
   </header>
 
-  <nav class="tabs">
-    <button class="active" data-tab="study">오늘 공부</button>
-    <button data-tab="browse">전체 보기</button>
-    <button data-tab="stats">진도</button>
-    <button data-tab="settings">설정</button>
-  </nav>
+  <div id="viewArea"></div>
 
-  <!-- 오늘 공부 탭 -->
-  <section id="tab-study">
-    <div id="studyView"></div>
-  </section>
-
-  <!-- 전체 보기 탭 -->
-  <section id="tab-browse" class="hidden">
-    <div id="browseView"></div>
-  </section>
-
-  <!-- 진도 탭 -->
-  <section id="tab-stats" class="hidden">
-    <div id="statsView"></div>
-  </section>
-
-  <!-- 설정 탭 -->
-  <section id="tab-settings" class="hidden">
-    <div class="card">
-      <h2 style="margin-bottom: 12px;">계정</h2>
-      <div id="authView"></div>
-    </div>
-    <div class="card">
-      <h2 style="margin-bottom: 12px;">학습 설정</h2>
-      <label style="display:block; margin-bottom: 10px;">
-        한 테스트의 새 문제 수
-        <input type="number" id="newPerDay" min="1" max="50" value="5" style="width:80px; padding:6px;">
-      </label>
-      <label style="display:block;">
-        한 테스트의 복습 한도 (최대)
-        <input type="number" id="reviewMax" min="5" max="200" value="30" style="width:80px; padding:6px;">
-      </label>
-      <button class="btn btn-secondary" style="margin-top: 12px;" onclick="saveSettings()">저장</button>
-    </div>
-
-    <div class="card">
-      <h2 style="margin-bottom: 12px;">매일 알림</h2>
-      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">
-        매일 정해진 시간에 공부 알림을 받을 수 있어요.
-      </p>
-      <label style="display:block; margin-bottom: 12px;">
-        알림 시간:
-        <input type="time" id="reminderTime" style="margin-left:8px; padding:6px; font-size:14px;">
-      </label>
-      <button class="btn" onclick="saveReminderTime()">알림 켜기 / 저장</button>
-      <button class="btn btn-secondary" onclick="disableReminder()" style="margin-left:6px;">알림 끄기</button>
-      <div id="notifStatus" style="font-size:13px; margin-top:12px; color: var(--text-light);"></div>
-
-      <hr style="margin: 18px 0; border:0; border-top:1px solid var(--border);">
-      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 10px;">
-        앱이 닫혀있을 때도 알림을 받으려면 휴대폰 캘린더에 매일 반복 일정으로 등록하는 게 가장 확실해요.
-      </p>
-      <button class="btn btn-secondary btn-block" onclick="downloadICS()">📅 캘린더에 매일 반복 일정 추가 (.ics 다운로드)</button>
-    </div>
-    <div class="card">
-      <h2 style="margin-bottom: 12px;">데이터</h2>
-      <button class="btn btn-secondary btn-block" onclick="exportData()">내 진도 내보내기 (JSON)</button>
-      <button class="btn btn-secondary btn-block" onclick="document.getElementById('importFile').click()">진도 가져오기</button>
-      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-      <button class="btn btn-secondary btn-block" onclick="resetProgress()" style="color: var(--error); border-color: var(--error);">진도 초기화</button>
-    </div>
-  </section>
+  <!-- 숨겨진 input - 진도 가져오기용 -->
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
 // ===========================
-// 문제 데이터 (창세기 샘플 20개 + 암송성구 2개)
+// 문제 데이터
 // ===========================
 const QUESTIONS = [
+  // ===== 창세기 (68문제) =====
   {id:"gen-001", book:"창세기", chapter:1, type:"fill",
    question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
-   body:'"( )에 하나님이 ( )를 창조하시니라 땅이 ( )하고 ( )하며 흑암이 ( ) 위에 있고 ( )은 수면 위에 운행하시니라" (창 1:1-2)',
+   body:'"( )에 하나님이 ( )를 창조하시니라 땅이 ( )하고 ( )하며 흑암이 ( ) 위에 있고 ( )은 수면 위에 운행하시니라" (창 1)',
    answer:"태초 / 천지 / 혼돈 / 공허 / 깊음 / 하나님의 영"},
 
   {id:"gen-002", book:"창세기", chapter:1, type:"multiple",
@@ -392,7 +447,7 @@ const QUESTIONS = [
 
   {id:"gen-003", book:"창세기", chapter:1, type:"fill",
    question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
-   body:'"하나님이 이르시되 ( )을 따라 ( )대로 우리가 ( )을 만들고 그들로 바다의 물고기와 하늘의 새와 가축과 온 땅과 땅에 기는 모든 것을 ( ) 하자" (창 1:26)',
+   body:'"하나님이 이르시되 ( )을 따라 ( )대로 우리가 ( )을 만들고 그들로 바다의 물고기와 하늘의 새와 가축과 온 땅과 땅에 기는 모든 것을 ( ) 하자" (창 1)',
    answer:"우리의 형상 / 우리의 모양 / 사람 / 다스리게"},
 
   {id:"gen-004", book:"창세기", chapter:1, type:"short",
@@ -405,16 +460,16 @@ const QUESTIONS = [
 
   {id:"gen-006", book:"창세기", chapter:2, type:"short",
    question:"여호와 하나님은 사람을 에덴 동산에 두시고 어떤 일을 맡기셨습니까? (창 2)",
-   answer:"에덴동산을 경작하고 지키는 일"},
+   answer:"에덴 동산을 경작하고 지키는 일"},
 
   {id:"gen-007", book:"창세기", chapter:2, type:"multiple",
    question:"여호와 하나님이 아담에게 먹지 말라고 하신 것은 무엇입니까? (창 2)",
-   options:["생명을 주는 나무의 열매","선악을 알게 하는 나무의 열매","믿음을 주는 나무의 열매","사랑을 알게 하는 나무의 열매"],
+   options:["생명을 주는 나무의 열매","선악을 알게 하는 나무의 열매","힘을 주는 나무의 열매","사랑을 알게 하는 나무의 열매"],
    answer:1},
 
   {id:"gen-008", book:"창세기", chapter:2, type:"fill",
    question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
-   body:'"이러므로 남자가 ( )를 떠나 그의 아내와 ( )하여 둘이 ( )을 이룰지로다" (창 2:24)',
+   body:'"이러므로 남자가 ( )를 떠나 그의 아내와 ( )하여 둘이 ( )을 이룰지로다" (창 2)',
    answer:"부모 / 합 / 한몸"},
 
   {id:"gen-009", book:"창세기", chapter:3, type:"multiple",
@@ -451,26 +506,1393 @@ const QUESTIONS = [
    question:"창세기에 나오는 사람 중 가장 오래 살았던 므두셀라의 향년은 몇 세입니까? (창 5)",
    answer:"969세"},
 
-  {id:"gen-016", book:"창세기", chapter:9, type:"short",
-   question:"노아 홍수 이후 하나님이 다시는 물로 세상을 멸하지 않으시겠다는 언약의 표시로 주신 것은 무엇입니까? (창 9)",
+  {id:"gen-016", book:"창세기", chapter:5, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"노아는 ( ) 된 후에 셈과 ( )과 ( )을 낳았더라" (창 5)',
+   answer:"500세 / 함 / 야벳"},
+
+  {id:"gen-017", book:"창세기", chapter:6, type:"multiple",
+   question:"다음 중 노아에게 해당하지 않는 내용은 무엇입니까? (창 6, 9)",
+   options:["의인","하나님과 동행한 자","용사","포도나무를 심은 자"],
+   answer:2},
+
+  {id:"gen-018", book:"창세기", chapter:6, type:"multiple",
+   question:"노아의 방주에 대한 설명으로 옳지 못한 것은 무엇입니까? (창 6)",
+   options:["길이 삼백 규빗, 너비 오십 규빗, 높이 삼십 규빗","문은 옆으로 내고 상, 중, 하 삼층으로 설계되었다","칸들을 만들고 밖에만 역청을 칠했다","고페르 나무로 만들었다"],
+   answer:2},
+
+  {id:"gen-019", book:"창세기", chapter:7, type:"short",
+   question:"홍수로 내리는 비는 노아가 몇 세 되던 해, 며칠 동안 쏟아졌습니까? (창 7)",
+   answer:"600세 되던 해, 40일 동안"},
+
+  {id:"gen-020", book:"창세기", chapter:7, type:"multiple",
+   question:"노아의 홍수 때 물이 며칠 동안 땅에 넘쳤습니까? (창 7)",
+   options:["130일","140일","150일","180일"],
+   answer:2},
+
+  {id:"gen-021", book:"창세기", chapter:8, type:"multiple",
+   question:"노아가 방주에서 나온 후 가장 먼저 한 일은 무엇입니까? (창 8)",
+   options:["하늘을 우러러 봤다","여호와께 번제를 드렸다","동물들을 밖으로 내보냈다","자신의 집을 지었다"],
+   answer:1},
+
+  {id:"gen-022", book:"창세기", chapter:9, type:"short",
+   question:"하나님께서 다시는 홍수로 모든 생물을 멸망시키지 않으리라는 언약의 증거로 인류에게 주신 것은 무엇입니까? (창 9)",
    answer:"무지개"},
 
-  {id:"gen-017", book:"창세기", chapter:12, type:"short",
-   question:"하나님이 아브람에게 본토 친척 아비 집을 떠나 가라고 하신 곳은 어디입니까? (창 12)",
-   answer:"여호와께서 보여주실 땅 (가나안)"},
+  {id:"gen-023", book:"창세기", chapter:9, type:"multiple",
+   question:"노아의 세 아들 중에서 가나안의 아버지가 된 사람은 누구입니까? (창 9)",
+   options:["셈","함","야벳","아간"],
+   answer:1},
 
-  {id:"gen-018", book:"창세기", chapter:17, type:"short",
+  {id:"gen-024", book:"창세기", chapter:9, type:"multiple",
+   question:"노아가 포도주를 마시고 취하여 벗었을 때, 아버지의 하체를 보고 밖으로 나가서 다른 형제들에게 말한 사람은 누구입니까? (창 9)",
+   options:["함","셈","야벳","가나안"],
+   answer:0},
+
+  {id:"gen-025", book:"창세기", chapter:10, type:"multiple",
+   question:"구스의 아들로, 세상의 첫 용사이며 사냥꾼이 된 사람은 누구입니까? (창 10)",
+   options:["스바","라아마","드단","니므롯"],
+   answer:3},
+
+  {id:"gen-026", book:"창세기", chapter:11, type:"multiple",
+   question:'다음 구절은 어느 사건의 시작을 알려주는 말씀입니까?\n"온 땅의 언어가 하나요 말이 하나였더라"',
+   options:["인간의 타락","바벨탑 사건","노아의 홍수","소돔과 고모라 사건"],
+   answer:1},
+
+  {id:"gen-027", book:"창세기", chapter:11, type:"multiple",
+   question:"바벨탑에 대한 설명으로 틀린 것은 무엇입니까? (창 11)",
+   options:["동방으로 옮기던 중 시날 산지에서 세운 탑이다","벽돌과 역청이 재료로 사용되었다","꼭대기가 하늘에 닿도록 높게 쌓을 계획이었다","이름을 내고 흩어지지 않기 위한 목적으로 세운 성읍과 탑이다"],
+   answer:0},
+
+  {id:"gen-028", book:"창세기", chapter:11, type:"multiple",
+   question:"노아의 자손들이 성읍과 탑을 건설하여 그들의 이름을 내고 지면에 흩어짐을 면하고자 한 곳은 어디입니까? (창 11)",
+   options:["모압 평지","소라 평지","시날 평지","싯딤 평지"],
+   answer:2},
+
+  {id:"gen-029", book:"창세기", chapter:11, type:"short",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까? (창 11)\n①아브라함과 나홀과 하란의 아버지는 ( )입니다.\n②( )은 아브라함의 형제이고 롯의 아버지이며, 갈대아 우르에서 아버지보다 먼저 죽었습니다.",
+   answer:"① 데라 / ② 하란"},
+
+  {id:"gen-030", book:"창세기", chapter:12, type:"multiple",
+   question:"여호와께서 아브람에게 고향, 친척, 아버지의 집을 떠나 어디로 가라고 하셨습니까? (창 12)",
+   options:["모리아 땅","하란","애굽","여호와께서 보여주실 땅"],
+   answer:3},
+
+  {id:"gen-031", book:"창세기", chapter:12, type:"multiple",
+   question:"아브람이 여호와를 위하여 제단을 쌓고 여호와의 이름을 부른 곳과 관계 있는 나무는 무엇입니까? (창 12)",
+   options:["올리브나무","상수리나무","포도나무","아카시아나무"],
+   answer:1},
+
+  {id:"gen-032", book:"창세기", chapter:14, type:"multiple",
+   question:"살렘 왕 멜기세덱에 대한 설명으로 옳지 못한 것은 무엇입니까? (창 14)",
+   options:["아브람이 그 얻은 것 중 십분의 일을 그에게 주었다","아브람을 위해 천지의 주재 하나님께 복을 빌어주었다","멜기세덱은 아브람을 영접하기 위해 떡과 포도주를 가지고 찾아왔다","멜기세덱은 예루살렘 왕이었으며 이방신을 섬기던 대제사장이었다"],
+   answer:3},
+
+  {id:"gen-033", book:"창세기", chapter:15, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"아브람아 두려워하지 말라 나는 네 ( )요 너의 지극히 큰 ( )이니라" (창 15)',
+   answer:"방패 / 상급"},
+
+  {id:"gen-034", book:"창세기", chapter:16, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"여호와의 사자가 또 그에게 이르되 네가 임신하였은즉 아들을 낳으리니 그 이름을 ( )이라 하라 … 그가 사람 중에 ( ) 같이 되리라 그의 손이 모든 사람을 치겠고 모든 사람의 손이 그를 칠지며 그가 모든 형제와 대항해서 살리라" (창 16)',
+   answer:"이스마엘 / 들나귀"},
+
+  {id:"gen-035", book:"창세기", chapter:17, type:"fill",
+   question:"다음은 하나님이 아브라함에게 하신 말씀입니다. ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"내가 내 ( )을 나와 너 및 네 대대 후손 사이에 세워서 영원한 ( )을 삼고 너와 네 후손의 하나님이 되리라" (창 17)',
+   answer:"언약"},
+
+  {id:"gen-036", book:"창세기", chapter:17, type:"short",
+   question:"'아브라함'이라는 이름의 뜻은 무엇입니까? (창 17)",
+   answer:"많은 무리의 아버지"},
+
+  {id:"gen-037", book:"창세기", chapter:17, type:"multiple",
+   question:"다음 중 할례에 관한 설명으로 옳은 것은 무엇입니까? (창 17)",
+   options:["모든 남자는 난 지 8일 만에 할례를 받아야 했다","할례는 레위인의 직임 영적 표징이었다","이스라엘 사람이 부리는 종들은 받지 않아도 되었다","할례는 모든 이방인과 하나님 사이에 맺는 영적 언약의 표시였다"],
+   answer:0},
+
+  {id:"gen-038", book:"창세기", chapter:17, type:"multiple",
    question:"아브라함과 그의 아들 이스마엘이 할례를 받을 때 그들의 나이는 각각 몇 세였습니까? (창 17)",
-   answer:"아브라함 99세, 이스마엘 13세"},
+   options:["90세, 10세","95세, 13세","99세, 10세","99세, 13세"],
+   answer:3},
 
-  {id:"gen-019", book:"창세기", chapter:22, type:"short",
-   question:"아브라함이 이삭을 번제로 바치려 한 사건을 '아케다(Aqedah)'라고 부르는데, 이는 창세기 몇 장에 나옵니까? (창 22)",
+  {id:"gen-039", book:"창세기", chapter:18, type:"short",
+   question:"소돔 성읍의 구원을 위해 호소한 사람은 누구이며, 의인 몇 명이 없어서 멸망하였습니까? (창 18)",
+   answer:"아브라함, 10명"},
+
+  {id:"gen-040", book:"창세기", chapter:19, type:"short",
+   question:"롯의 일가족이 소돔과 고모라의 심판을 피해 들어간 작은 성의 이름은 무엇입니까? (창 19)",
+   answer:"소알"},
+
+  {id:"gen-041", book:"창세기", chapter:20, type:"multiple",
+   question:"그랄 왕 아비멜렉에 대한 설명으로 옳지 못한 것은 무엇입니까? (창 20)",
+   options:["아브라함의 아내 사라를 자기 아내로 삼으려고 데려갔다","하나님이 그에게 현몽하셔서 사라가 아내가 있는 자의 아내라는 사실을 말씀하시고 경고하셨다","그는 하나님이 사라가 아브라함의 누이라는 것을 알리지 않으셨음을 말씀드리고 항변하였다","그랄 왕 아비멜렉은 아브라함의 아내 사라를 데려간 애굽 왕 바로의 다른 이름이다"],
+   answer:3},
+
+  {id:"gen-042", book:"창세기", chapter:21, type:"multiple",
+   question:'다음에서 언급되는 여종의 아들은 누구입니까?\n"아이가 자라매 젖을 떼니라 이삭이 젖을 떼는 날에 아브라함이 큰 잔치를 베풀었더라 사라가 본즉 아브라함의 아들 애굽 여인 하갈의 아들이 이삭을 놀리는지라 그가 아브라함에게 이르되 이 여종과 그 아들을 내쫓으라 이 종의 아들은 내 아들 이삭과 함께 기업을 얻지 못하리라 하므로" (창 21)',
+   options:["이스마엘","에서","모압","요셉"],
+   answer:0},
+
+  {id:"gen-043", book:"창세기", chapter:21, type:"short",
+   question:"아브라함은 아비멜렉에게 양과 소, 그리고 암양 새끼 일곱 마리를 따로 떼어 놓아 주면서 아비멜렉의 종들이 빼앗은 우물은 아브라함의 소유라는 증거로 삼고 서로 언약을 맺었습니다. '맹세의 우물'이라는 뜻을 가진 그 곳 이름은 무엇입니까? (창 21)",
+   answer:"브엘세바"},
+
+  {id:"gen-044", book:"창세기", chapter:21, type:"short",
+   question:"아브라함이 브엘세바에 심은 나무의 이름은 무엇입니까? (창 21)",
+   answer:"에셀나무"},
+
+  {id:"gen-045", book:"창세기", chapter:22, type:"short",
+   question:"아브라함이 이삭을 번제로 바치는 아케다(Aqedah)로 불리는 사건은 창세기 몇 장에 나옵니까?",
    answer:"창세기 22장"},
 
-  {id:"gen-020", book:"창세기", chapter:50, type:"fill",
+  {id:"gen-046", book:"창세기", chapter:22, type:"short",
+   question:"하나님께서 아브라함에게 100세에 낳은 아들을 제물로 바치라고 명령하신 이유는 무엇입니까? (창 22)",
+   answer:"아브라함을 시험하시려고"},
+
+  {id:"gen-047", book:"창세기", chapter:22, type:"multiple",
+   question:"다음 중 '여호와 이레'와 관련이 없는 내용은 무엇입니까? (창 22, 대하 3)",
+   options:["모리아 땅의 한 산으로 후에 솔로몬의 성전이 세워진 산","이삭 대신 하나님이 예비하신 숫양을 번제로 드렸다","여호와의 산에서 준비되리라","아브라함이 그의 종들과 함께 모리아 산에서 번제를 드렸다"],
+   answer:3},
+
+  {id:"gen-048", book:"창세기", chapter:22, type:"fill",
    question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
-   body:'"요셉이 그들에게 이르되 두려워하지 마소서 내가 ( )을 대신하리이까 당신들은 나를 ( )하려 하였으나 하나님은 그것을 ( )으로 바꾸사 오늘과 같이 많은 백성의 ( )을 구원하게 하시려 하셨나니" (창 50)',
+   body:'"여호와께서 이르시기를 내가 나를 가리켜 맹세하노니 네가 이같이 행하여 네 아들 네 독자도 아끼지 아니하였은즉 내가 네게 큰 ( )을 주고 네 씨가 크게 ( )하여 하늘의 ( )과 같고 바닷가의 ( )와 같게 하리니" (창 22)',
+   answer:"복 / 번성 / 별 / 모래"},
+
+  {id:"gen-049", book:"창세기", chapter:23, type:"short",
+   question:"아브라함의 아내 사라는 어디에서 죽었습니까? (창 23)",
+   answer:"헤브론 (옛 이름은 기럇아르바)"},
+
+  {id:"gen-050", book:"창세기", chapter:23, type:"multiple",
+   question:"다음 중 사라의 죽음에 관한 설명으로 옳지 않은 것은 무엇입니까? (창 23)",
+   options:["127세를 살았다","브엘세바 근처의 막벨라 동굴에 묻혔다","헷 족속인 에브론의 밭과 거기에 속한 막벨라 굴을 사서 매장지로 삼았다","사라가 묻힌 마므레는 헤브론의 다른 이름이다"],
+   answer:1},
+
+  {id:"gen-051", book:"창세기", chapter:23, type:"short",
+   question:"헷 족속 소할의 아들 에브론의 밭에 있는 것으로, 아브라함이 그의 아내와 함께 장사된 굴의 이름은 무엇입니까? (창 23)",
+   answer:"막벨라 굴"},
+
+  {id:"gen-052", book:"창세기", chapter:25, type:"multiple",
+   question:"에서와 야곱 사이에 일어난 일에 대한 서술로, 옳은 것은 무엇입니까? (창 25)",
+   options:["야곱이 에서에게 떡과 죽 한 그릇의 명분을 샀다","야곱이 에서에게 팥죽을 주고 장자의 명분을 샀다","야곱이 에서에게 떡과 팥죽을 주고 장자의 명분을 샀다","에서는 사냥한 고기를 야곱의 팥죽과 바꾸어 먹었다"],
+   answer:2},
+
+  {id:"gen-053", book:"창세기", chapter:25, type:"short",
+   question:"'야곱'이라는 이름의 뜻은 무엇입니까? (창 25)",
+   answer:"발꿈치를 잡았다"},
+
+  {id:"gen-054", book:"창세기", chapter:25, type:"short",
+   question:"'에서'라는 이름의 뜻과 별명은 무엇입니까? (창 25)",
+   answer:"붉음, 에돔"},
+
+  {id:"gen-055", book:"창세기", chapter:26, type:"multiple",
+   question:"아브라함처럼 해를 당할까 두려워 자기 아내를 누이동생이라고 속인 인물은 누구입니까? (창 26)",
+   options:["이삭","에서","야곱","요셉"],
+   answer:0},
+
+  {id:"gen-056", book:"창세기", chapter:26, type:"multiple",
+   question:"에서는 무슨 일로 부모의 마음에 근심이 되었습니까? (창 26)",
+   options:["형제 간의 반목","사냥","자신의 결손함","이방 여인과의 결혼"],
+   answer:3},
+
+  {id:"gen-057", book:"창세기", chapter:28, type:"short",
+   question:"야곱이 하나님의 사자가 오르내리는 환상을 본 지명과 그 옛 이름은 무엇입니까? (창 28)",
+   answer:"벧엘, 루스"},
+
+  {id:"gen-058", book:"창세기", chapter:28, type:"multiple",
+   question:"다음 중에서 야곱의 서원과 관계없는 것은 무엇입니까? (창 28)",
+   options:["내가 기둥으로 세운 돌이 하나님의 집이 될 것이다","여호와께서 나의 하나님이 될 것이다","내게 주신 모든 것의 십분의 일을 하나님께 드리겠다","형의 노여움을 위해 항상 기도하겠다"],
+   answer:3},
+
+  {id:"gen-059", book:"창세기", chapter:30, type:"multiple",
+   question:"야곱의 자녀는 모두 몇 명입니까? (창 30)",
+   options:["10명","12명","13명","15명"],
+   answer:2},
+
+  {id:"gen-060", book:"창세기", chapter:31, type:"multiple",
+   question:"다음 중에서 야곱과 라반이 언약을 맺은 장소가 아닌 것은 무엇입니까? (창 31)",
+   options:["미스바","길르앗","갈르엣","여갈사하두다"],
+   answer:1},
+
+  {id:"gen-061", book:"창세기", chapter:32, type:"short",
+   question:"야곱이 하나님의 사자들을 만난 후에 '하나님의 군대'라는 뜻의 이름을 붙인 지명은 어디입니까? (창 32)",
+   answer:"마하나임"},
+
+  {id:"gen-062", book:"창세기", chapter:32, type:"short",
+   question:"야곱이 얍복 나루터에서 경야할 때, 형 에서에게 화해의 예물로 보낸 가축(소, 양, 염소, 낙타, 나귀 등)의 수는 모두 몇 마리였습니까? (창 32)",
+   answer:"550마리"},
+
+  {id:"gen-063", book:"창세기", chapter:37, type:"short",
+   question:"요셉이 애굽으로 팔려갔을 때의 나이와 애굽에서 총리가 되었을 때의 나이는 각각 몇 세였습니까? (창 37, 41)",
+   answer:"17세, 30세"},
+
+  {id:"gen-064", book:"창세기", chapter:41, type:"short",
+   question:"요셉의 아내가 된 온 제사장 보디베라의 딸 이름은 무엇입니까? (창 41)",
+   answer:"아스낫"},
+
+  {id:"gen-065", book:"창세기", chapter:41, type:"short",
+   question:"요셉의 두 아들 이름은 무엇입니까? (창 41)",
+   answer:"므낫세, 에브라임"},
+
+  {id:"gen-066", book:"창세기", chapter:42, type:"short",
+   question:"곡식을 사러 온 형제들의 의리를 시험하기 위해 요셉은 누구를 볼모로 잡아두었습니까? (창 42)",
+   answer:"시므온"},
+
+  {id:"gen-067", book:"창세기", chapter:44, type:"short",
+   question:"두 번째 곡식을 사가지고 돌아가던 중, 베냐민의 자루에서 은잔이 나왔을 때 베냐민 대신 자기가 종이 되겠다고 말한 사람은 누구입니까? (창 44)",
+   answer:"유다"},
+
+  {id:"gen-068", book:"창세기", chapter:50, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"요셉이 그들에게 이르되 두려워하지 마소서 내가 ( )을 대신하리이까 당신들은 나를 ( )하려 하였으나 하나님은 그것을 ( )으로 바꾸사 오늘과 같이 많은 백성의 ( )을 구원하게 하시려 하셨나니 당신들은 두려워하지 마소서" (창 50)',
    answer:"하나님 / 해 / 선 / 생명"},
+
+  // ===== 출애굽기 (52문제) =====
+  {id:"exo-001", book:"출애굽기", chapter:1, type:"short",
+   question:"흉년과 기근을 피하여 애굽으로 내려간 야곱의 혈족은 요셉을 포함하여 모두 몇 명입니까? (출 1)",
+   answer:"70명"},
+
+  {id:"exo-002", book:"출애굽기", chapter:1, type:"multiple",
+   question:"다음 중에서 이스라엘 자손이 바로를 위하여 건축한 국고성은 어디입니까? (출 1)",
+   options:["비돔과 고센","비돔과 라암셋","바알스본과 에담","비하히롯과 숙곳"],
+   answer:1},
+
+  {id:"exo-003", book:"출애굽기", chapter:2, type:"short",
+   question:"'모세'라는 이름의 의미는 무엇입니까? (출 2)",
+   answer:"물에서 건져 냄"},
+
+  {id:"exo-004", book:"출애굽기", chapter:2, type:"short",
+   question:"모세의 장인이 된 미디안의 제사장은 2장과 3장에서 서로 다른 두 이름으로 나옵니다. 각각 무슨 이름으로 나옵니까? (출 2~3)",
+   answer:"르우엘, 이드로"},
+
+  {id:"exo-005", book:"출애굽기", chapter:2, type:"short",
+   question:"모세가 십보라와 결혼하여 낳은 첫아들의 이름은 무엇입니까? (출 2)",
+   answer:"게르솜"},
+
+  {id:"exo-006", book:"출애굽기", chapter:3, type:"short",
+   question:"여호와께서 이스라엘 백성에게 주시겠다고 하신 땅에 살고 있던 여섯 부족의 이름을 모두 써 보십시오. (출 3)",
+   answer:"가나안 족속, 헷 족속, 아모리 족속, 브리스 족속, 히위 족속, 여부스 족속"},
+
+  {id:"exo-007", book:"출애굽기", chapter:3, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"하나님이 모세에게 이르시되 나는 ( )이라 또 이르시되 너는 이스라엘 자손에게 이같이 이르기를 ( )가 나를 너희에게 보내셨다 하라" (출 3)',
+   answer:"스스로 있는 자"},
+
+  {id:"exo-008", book:"출애굽기", chapter:4, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"나는 ( )이 뻣뻣하고 ( )가 둔한 자이니이다 여호와께서 그에게 이르시되 누가 사람의 ( )을 지었느냐 … 이제 가라 내가 네 ( )과 함께 있어서 할 말을 가르치리라" (출 4)',
+   answer:"입 / 혀 / 입 / 입"},
+
+  {id:"exo-009", book:"출애굽기", chapter:6, type:"short",
+   question:"모세의 부모의 이름은 무엇입니까? (출 6)",
+   answer:"아므람, 요게벳"},
+
+  {id:"exo-010", book:"출애굽기", chapter:6, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내가 아브라함과 이삭과 야곱에게 ( )의 하나님으로 나타났으나 나의 이름을 ( )로는 그들에게 알리지 아니하였고" (출 6)',
+   answer:"전능 / 여호와"},
+
+  {id:"exo-011", book:"출애굽기", chapter:6, type:"multiple",
+   question:"다음 중에서 아론의 아들이 아닌 사람은 누구입니까? (출 6)",
+   options:["게르솜","나답","아비후","이다말"],
+   answer:0},
+
+  {id:"exo-012", book:"출애굽기", chapter:7, type:"short",
+   question:"바로와 애굽에 내려진 열 가지 재앙 중에 첫째 재앙과 마지막 재앙은 각각 무엇이었습니까? (출 7~12)",
+   answer:"첫째 재앙: 물이 피로 변함 / 마지막 재앙: 처음 난 것들의 죽음"},
+
+  {id:"exo-013", book:"출애굽기", chapter:12, type:"multiple",
+   question:"다음 중 유월절에 먹은 음식의 종류끼리 짝지어진 것은 무엇입니까? (출 12)",
+   options:["누룩 없는 떡과 나물과 소고기","누룩 없는 떡과 양고기","당근과 누룩 없는 떡과 산나물","쓴 나물과 소고기와 누룩 없는 떡"],
+   answer:1},
+
+  {id:"exo-014", book:"출애굽기", chapter:12, type:"multiple",
+   question:"이스라엘 백성이 출애굽할 때 애굽에서 출발한 곳은 어디입니까? (출 12)",
+   options:["라암셋","숙곳","고센","미돌"],
+   answer:0},
+
+  {id:"exo-015", book:"출애굽기", chapter:12, type:"multiple",
+   question:"이스라엘 자손이 출애굽한 것은 애굽에 거한 지 몇 년 만의 일이었습니까? (출 12)",
+   options:["400년","430년","450년","500년"],
+   answer:1},
+
+  {id:"exo-016", book:"출애굽기", chapter:13, type:"multiple",
+   question:"하나님은 왜 애굽에서 나온 이스라엘 백성을 가까운 블레셋 땅으로 인도하지 않고 홍해의 광야 길로 인도하셨습니까? (출 13)",
+   options:["블레셋 군인의 수비대가 너무 강해서","새로운 길을 마련하기 위해서","백성이 전쟁을 보면 마음이 변하여 애굽으로 돌아갈 것을 염려하셔서","불기둥과 구름기둥으로 인도하시기 위하여"],
+   answer:2},
+
+  {id:"exo-017", book:"출애굽기", chapter:14, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"모세가 백성에게 이르되 너희는 두려워하지 말고 ( ) 서서 여호와께서 오늘 너희를 위하여 행하시는 구원을 보라 … 여호와께서 너희를 위하여 싸우시리니 너희는 ( ) 있을지니라" (출 14)',
+   answer:"가만히"},
+
+  {id:"exo-018", book:"출애굽기", chapter:14, type:"short",
+   question:"홍해 앞에 섰을 때 출애굽한 이스라엘을 애굽 군대의 추격으로부터 막아서 애굽 군대를 어둡게 한 것은 무엇입니까? (출 14)",
+   answer:"구름 기둥"},
+
+  {id:"exo-019", book:"출애굽기", chapter:15, type:"short",
+   question:"하나님이 홍해에서 애굽 군대를 물리쳐 주신 것을 찬양하며 손에 소고를 잡고 춤춘 여인은 누구입니까? (출 15)",
+   answer:"미리암"},
+
+  {id:"exo-020", book:"출애굽기", chapter:15, type:"multiple",
+   question:"출애굽한 이스라엘 백성들은 '마라'에 도착했으나 물이 써서 마시지 못했습니다. 하나님이 가르쳐 주신 이 문제의 해결 방법은 무엇이었습니까? (출 15)",
+   options:["바위에서 물이 나오게 하셨다","소금을 뿌렸다","한 나무를 물에 넣게 하셨다","큰 비를 내려주셔서 물 샘이 터지게 하셨다"],
+   answer:2},
+
+  {id:"exo-021", book:"출애굽기", chapter:16, type:"multiple",
+   question:"이스라엘에게 만나가 내리기 시작한 곳의 지명은 무엇입니까? (출 16)",
+   options:["마라","엘림","가데스 바네아","신 광야"],
+   answer:3},
+
+  {id:"exo-022", book:"출애굽기", chapter:16, type:"multiple",
+   question:"이스라엘 백성이 광야에서 거둔 하루 분량의 만나의 양은 얼마였습니까? (출 16)",
+   options:["1입오멜","1오멜","1세아","한 어깨"],
+   answer:1},
+
+  {id:"exo-023", book:"출애굽기", chapter:17, type:"short",
+   question:"출애굽 여정 중, 마실 물과 관련하여 이스라엘 자손이 다투었던 장소는 무엇이라 불렸습니까? (출 17)",
+   answer:"맛사 또는 므리바"},
+
+  {id:"exo-024", book:"출애굽기", chapter:17, type:"short",
+   question:"아말렉과 싸울 때 기도하던 모세의 손을 양쪽에서 붙들어 올려준 두 사람은 누구입니까? (출 17)",
+   answer:"아론과 훌"},
+
+  {id:"exo-025", book:"출애굽기", chapter:17, type:"multiple",
+   question:"다음 중 옳지 않은 내용은 무엇입니까? (출 12~17)",
+   options:["'여호와 닛시'란 '여호와는 나의 깃대'라는 뜻이다","마라는 이스라엘 백성이 시내 산을 지난 직후에 만났던 쓴 물 나는 연못이다","만나는 갓씨 같이 희고 둥글었다","이스라엘 자손은 애굽에 430년간 거주했다"],
+   answer:1},
+
+  {id:"exo-026", book:"출애굽기", chapter:18, type:"multiple",
+   question:"천부장, 백부장, 오십부장, 십부장을 세우는 기준으로 이드로가 언급한 내용이 아닌 것은 무엇입니까? (출 18)",
+   options:["뇌물에 충성한 자","하나님을 두려워하는 자","진실한 자","불의의 이익을 미워하는 자"],
+   answer:0},
+
+  {id:"exo-027", book:"출애굽기", chapter:19, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"세계가 다 내게 속하였나니 너희가 내 말을 잘 듣고 내 ( )을 지키면 너희는 모든 민족 중에서 내 ( )가 되겠고 너희가 내게 대하여 ( ) 나라가 되며 ( ) 백성이 되리라" (출 19)',
+   answer:"언약 / 소유 / 제사장 / 거룩한"},
+
+  {id:"exo-028", book:"출애굽기", chapter:20, type:"short",
+   question:"십계명은 출애굽기와 신명기에 나옵니다. 출애굽기에서는 몇 장에 나옵니까? (출 20)",
+   answer:"20장"},
+
+  {id:"exo-029", book:"출애굽기", chapter:20, type:"short",
+   question:"십계명 중 제4계명과 제8계명을 써 보십시오. (출 20)",
+   answer:"제4계명: 안식일을 기억하여 거룩하게 지키라 / 제8계명: 도둑질하지 말라"},
+
+  {id:"exo-030", book:"출애굽기", chapter:20, type:"multiple",
+   question:"제단을 쌓는 돌은 어떠해야 합니까? (출 20)",
+   options:["짐으로 잘 다듬은 돌","받듯하게 깨뜨린 돌","거룩한 산에서 가져온 돌","쇠 연장으로 다듬지 아니한 돌"],
+   answer:3},
+
+  {id:"exo-031", book:"출애굽기", chapter:21, type:"multiple",
+   question:"구약의 율법에 의하면 자기 아버지나 어머니를 치는 자는 어떤 형벌을 받습니까? (출 21)",
+   options:["집에서 쫓겨난다","노예가 된다","반드시 죽인다","재산을 몰수한다"],
+   answer:2},
+
+  {id:"exo-032", book:"출애굽기", chapter:22, type:"multiple",
+   question:"다음 중 율법의 내용으로 옳지 않은 것은 무엇입니까? (출 22)",
+   options:["무당을 살려두지 말고, 짐승과 행음하는 자는 반드시 죽이라","여호와 외에 다른 신에게 희생을 드리는 자는 멸하라","재판장뿐 아니라 백성의 유사도 저주하면 안 된다","돌에게서 짐승에게 찢긴 고기는 먹어도 된다"],
+   answer:3},
+
+  {id:"exo-033", book:"출애굽기", chapter:22, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너는 이방 나그네를 압제하지 말며 그들을 학대하지 말라 너희도 애굽 땅에서 나그네였음이라 너는 과부나 ( )를 해롭게 하지 말라 네가 만일 그들을 해롭게 하므로 그들이 내게 부르짖으면 내가 반드시 그 부르짖음을 들으리라" (출 22)',
+   answer:"고아"},
+
+  {id:"exo-034", book:"출애굽기", chapter:22, type:"multiple",
+   question:"다음 중 율법의 내용으로 옳지 않은 것은 무엇입니까? (출 22~23)",
+   options:["원수의 길 잃은 소를 만나거든 반드시 그에게 돌려보내라","뇌물을 받지 말라","염소 새끼는 그 어미의 젖으로 삶지 말라","이방 나그네를 압제해도 된다"],
+   answer:3},
+
+  {id:"exo-035", book:"출애굽기", chapter:22, type:"multiple",
+   question:"하나님께서 학대하거나 해롭게 하지 말라고 한 대상이 아닌 사람은 누구입니까? (출 22)",
+   options:["나그네","과부","홀아비","고아"],
+   answer:2},
+
+  {id:"exo-036", book:"출애굽기", chapter:23, type:"short",
+   question:"이스라엘이 매년 지켜야 할 삼대 절기는 무엇입니까? (출 23)",
+   answer:"무교절, 맥추절, 수장절"},
+
+  {id:"exo-037", book:"출애굽기", chapter:28, type:"short",
+   question:"'거룩한 제비'였던 우림과 둠밈은 각각 무슨 뜻을 가진 말입니까? (출 28)",
+   answer:"우림: 빛 / 둠밈: 완전함"},
+
+  {id:"exo-038", book:"출애굽기", chapter:28, type:"multiple",
+   question:"아론이 쓰는 관 위에 붙은 패에 새긴 글은 무엇입니까? (출 28)",
+   options:["여호와께 성결","여호와께 충성","여호와께 순종","여호와께 헌신"],
+   answer:0},
+
+  {id:"exo-039", book:"출애굽기", chapter:29, type:"multiple",
+   question:"모세가 하나님의 명령에 따라 아론과 그의 아들들에게 행한 제사장 위임식의 기간은 얼마였습니까? (출 29)",
+   options:["1일","3일간","7일간","40일간"],
+   answer:2},
+
+  {id:"exo-040", book:"출애굽기", chapter:30, type:"multiple",
+   question:"다음 중 생명의 속전에 관한 설명으로 옳지 않은 것은 무엇입니까? (출 30)",
+   options:["일종의 인두세로, 20세 이상의 남자에게 부과되었다","속전의 액수는 반 세겔이었다","부자는 더 내야 했고 가난한 자는 덜 내도 되었다","이스라엘 회중 가운데 질병을 없앨 목적으로 드렸다"],
+   answer:2},
+
+  {id:"exo-041", book:"출애굽기", chapter:31, type:"short",
+   question:'다음 구절은 무엇을 말함입니까?\n"그 날을 더럽히는 자는 모두 죽일지며 그 날에 일하는 자는 모두 그 백성 중에서 그 생명이 끊어지리라" (출 31)',
+   answer:"안식일"},
+
+  {id:"exo-042", book:"출애굽기", chapter:32, type:"multiple",
+   question:"출애굽 후 모세가 시내 산에 올라가 있는 동안 이스라엘은 어떤 죄를 범했습니까? (출 32)",
+   options:["남색하였다","이방 여인과의 음란히 관계하였다","애굽으로 돌아가려 계획하였다","금송아지를 만들고 숭배하였다"],
+   answer:3},
+
+  {id:"exo-043", book:"출애굽기", chapter:32, type:"multiple",
+   question:"모세가 시내 산에서 내려왔을 때 금송아지 우상을 섬기는 자 중에 몇 명가량이 죽임을 당했습니까? (출 32)",
+   options:["4,000명","3,000명","5,000명","2,000명"],
+   answer:1},
+
+  {id:"exo-044", book:"출애굽기", chapter:33, type:"multiple",
+   question:"회막을 떠나지 않고 지키던 모세의 수종자는 누구입니까? (출 33)",
+   options:["아론","여호수아","겔르솜","나답"],
+   answer:1},
+
+  {id:"exo-045", book:"출애굽기", chapter:33, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"나는 은혜 베풀 자에게 ( )을 베풀고 긍휼히 여길 자에게 긍휼을 베푸느니라" (출 33)',
+   answer:"은혜 / 긍휼히"},
+
+  {id:"exo-046", book:"출애굽기", chapter:34, type:"short",
+   question:"모세가 십계명 돌판을 받기 위하여 두 번째 시내 산에 올라갔을 때 머문 기간은 얼마입니까? (출 34)",
+   answer:"40주야"},
+
+  {id:"exo-047", book:"출애굽기", chapter:37, type:"multiple",
+   question:"양편에서 마주보며 날개를 높이 펴서 속죄소를 덮고 있는 것은 무엇입니까? (출 37)",
+   options:["그룹","향단","금색 휘장","연기"],
+   answer:0},
+
+  {id:"exo-048", book:"출애굽기", chapter:38, type:"short",
+   question:"성막 뜰에 위치한 성막 기구 두 가지는 무엇입니까? (출 38)",
+   answer:"번제단, 물두멍"},
+
+  {id:"exo-049", book:"출애굽기", chapter:39, type:"short",
+   question:"서로 관련이 있는 것끼리 연결해 보십시오.\n①오홀리압  ②아론을 위한 거룩한 옷  ③브살렐  ④성막 위에 구름이 떠오를 때 / ㉠조각목으로 궤를 만들  ㉡이스라엘 백성의 행진  ㉢재능 있는 조각가  ㉣여호와 (출 39)",
+   answer:"①-㉢ / ②-㉣ / ③-㉠ / ④-㉡"},
+
+  {id:"exo-050", book:"출애굽기", chapter:40, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"그는 또 ( )을 궤 속에 넣고 채를 궤에 꿰고 속죄소를 궤 위에 두고" (출 40)',
+   answer:"증거판"},
+
+  {id:"exo-051", book:"출애굽기", chapter:40, type:"multiple",
+   question:"회막 세우는 일을 마친 직후에 여호와의 영광이 충만했을 때 그곳에 들어갈 수 있었던 사람은 누구입니까? (출 40)",
+   options:["유다지파 사람들","모세","레위지파 사람들","아무도 못 들어감"],
+   answer:3},
+
+  {id:"exo-052", book:"출애굽기", chapter:40, type:"multiple",
+   question:"이스라엘 백성은 광야에서 무엇을 신호로 하여 행진하였습니까? (출 40)",
+   options:["모세의 명령","나팔소리","구름이 떠오르는 것","불기둥"],
+   answer:2},
+
+  // ===== 레위기 (58문제) =====
+  {id:"lev-001", book:"레위기", chapter:1, type:"short",
+   question:"레위기에 나오는 5대 제사는 무엇입니까? (레 1~7)",
+   answer:"번제, 소제, 화목제, 속죄제, 속건제"},
+
+  {id:"lev-002", book:"레위기", chapter:1, type:"short",
+   question:"제물의 전부를 제단 위에서 불살라 드리는 제사는 무엇입니까? (레 1)",
+   answer:"번제"},
+
+  {id:"lev-003", book:"레위기", chapter:2, type:"short",
+   question:"고운 가루 위에 기름을 붓고 유향을 놓은 후 불사르는 제사는 무엇입니까? (레 2)",
+   answer:"소제"},
+
+  {id:"lev-004", book:"레위기", chapter:2, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희가 여호와께 드리는 모든 ( )에는 누룩을 넣지 말지니 너희가 누룩이나 꿀을 여호와께 ( )로 사르지 못할지니라" (레 2)',
+   answer:"소제물 / 화제"},
+
+  {id:"lev-005", book:"레위기", chapter:2, type:"short",
+   question:"모든 제물에 소금을 치는 제사는 무엇입니까? (레 2)",
+   answer:"소제"},
+
+  {id:"lev-006", book:"레위기", chapter:3, type:"multiple",
+   question:"다음 중에서 '감사제'라고 할 수 있는 제사는 무엇입니까? (레 3)",
+   options:["번제","소제","화목제","속죄제"],
+   answer:2},
+
+  {id:"lev-007", book:"레위기", chapter:3, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희는 ( )이나 ( )를 먹지 말라 이는 너희의 모든 처소에서 자손 대대로 지킬 영원한 규례니라" (레 3)',
+   answer:"기름 / 피"},
+
+  {id:"lev-008", book:"레위기", chapter:4, type:"multiple",
+   question:"여호와의 계명 중 하나라도 그릇되게 범하였을 때 드리는 제사는 무엇입니까? (레 4)",
+   options:["번제","소제","화목제","속죄제"],
+   answer:3},
+
+  {id:"lev-009", book:"레위기", chapter:5, type:"short",
+   question:"부정한 것을 만졌음을 깨달았을 때 드리는 제사는 무엇입니까? (레 5)",
+   answer:"속죄제"},
+
+  {id:"lev-010", book:"레위기", chapter:5, type:"multiple",
+   question:"속죄제를 드릴 때, 형편이 안 되면 비둘기 대신 무엇을 예물로 드릴 수 있습니까? (레 5)",
+   options:["고운 가루","양","돼지","염소"],
+   answer:0},
+
+  {id:"lev-011", book:"레위기", chapter:5, type:"multiple",
+   question:"여호와의 성물에 대하여서 부지 중에 범죄하였을 때 드리는 제사는 무엇입니까? (레 5)",
+   options:["번제","소제","화목제","속건제"],
+   answer:3},
+
+  {id:"lev-012", book:"레위기", chapter:6, type:"multiple",
+   question:"훔친 물건을 이웃에게 되돌려줄 때, 본래 물건에 얼마를 더하여 주어야 했습니까? (레 6)",
+   options:["1/2","1/3","1/4","1/5"],
+   answer:3},
+
+  {id:"lev-013", book:"레위기", chapter:6, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"제단 위의 ( )은 항상 피워 켜져야 하나니 제사장은 아침마다 나무를 그 위에 사르고 번제물을 그 위에 벌여 놓고 화목제의 기름을 그 위에서 불사를지며 ( )은 끊임 없이 제단 위에 켜져 꺼지지 않게 할지니라" (레 6)',
+   answer:"불"},
+
+  {id:"lev-014", book:"레위기", chapter:7, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"너희는 모든 곳에서 새나 짐승의 ( )를 먹지 말라 무슨 ( )든지 먹는 사람이 있으면 그 사람은 다 자기 백성 중에서 끊어지리라" (레 7)',
+   answer:"피"},
+
+  {id:"lev-015", book:"레위기", chapter:7, type:"multiple",
+   question:"속건제와 규례가 같은 제사는 무엇입니까? (레 7)",
+   options:["번제","소제","화목제","속죄제"],
+   answer:3},
+
+  {id:"lev-016", book:"레위기", chapter:1, type:"short",
+   question:"서로 관련이 있는 것끼리 연결해 보십시오. (레 1~7)\n① 번제  ② 화목제  ③ 소제  ④ 속죄제  ⑤ 속건제\n㉠ 금전적 보상을 부과할 수 있는 죄에 대한 속죄\n㉡ 번제나 화목제에 수반되는 헌물\n㉢ 제단에 피를 뿌리고 고기는 제물로 태운다\n㉣ 가족적 경사를 축하하는 제사, 속죄와 교제의 뜻\n㉤ 우연한 사건, 부주의나 무지로 인한 죄",
+   answer:"①-㉢ / ②-㉣ / ③-㉡ / ④-㉤ / ⑤-㉠"},
+
+  {id:"lev-017", book:"레위기", chapter:8, type:"short",
+   question:"제사장이 입는 에봇의 흉패 안에는 무엇을 넣었습니까? (레 8)",
+   answer:"우림, 둠밈"},
+
+  {id:"lev-018", book:"레위기", chapter:8, type:"short",
+   question:"이스라엘의 첫 번째 제사장인 아론과 그의 아들들의 위임식을 거행한 사람은 누구입니까? (레 8)",
+   answer:"모세"},
+
+  {id:"lev-019", book:"레위기", chapter:9, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 각각 무엇입니까?",
+   body:'"( )는 가축을 예물로 드리는 제사입니다.\n( )는 식물을 예물로 드리는 제사입니다." (레 9)',
+   answer:"화목제 / 소제"},
+
+  {id:"lev-020", book:"레위기", chapter:10, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너와 네 자손들이 회막에 들어갈 때에는 ( )나 ( )를 마시지 말라 그리하여 너희 죽음을 면하라 이는 너희 대대로 영영한 규례라" (레 10)',
+   answer:"포도주 / 독주"},
+
+  {id:"lev-021", book:"레위기", chapter:10, type:"multiple",
+   question:"아론의 두 아들 나답과 아비후가 하나님 앞에서 죽임당한 이유는 무엇입니까? (레 10)",
+   options:["예복을 입지 않아서","여호와께서 명령하지 않은 다른 불을 담아 분향해서","아론의 명에 순종하지 않아서","교만하여서"],
+   answer:1},
+
+  {id:"lev-022", book:"레위기", chapter:11, type:"short",
+   question:"짐승 중에서 먹을 수 있는 것은 어떤 것입니까? (레 11)",
+   answer:"굽이 갈라져 쪽발이면서 새김질도 하는 짐승"},
+
+  {id:"lev-023", book:"레위기", chapter:11, type:"short",
+   question:"물에 사는 물고기 중에서 먹을 수 있는 것은 어떤 것입니까? (레 11)",
+   answer:"지느러미와 비늘이 있는 것"},
+
+  {id:"lev-024", book:"레위기", chapter:11, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"나는 너희의 하나님이 되려고 너희를 애굽 땅에서 인도하여 낸 여호와라 내가 ( )하니 너희도 ( )할지어다" (레 11)',
+   answer:"거룩"},
+
+  {id:"lev-025", book:"레위기", chapter:12, type:"short",
+   question:"남자아이의 할례 의식은 출생 후 며칠 만에 행합니까? (레 12)",
+   answer:"8일"},
+
+  {id:"lev-026", book:"레위기", chapter:13, type:"multiple",
+   question:"병 있는 동안 늘 부정했던 나병 환자에게 취해진 조치는 무엇입니까? (레 13)",
+   options:["진영 밖에서 혼자 살아야 했다","집 밖으로만 발자국도 나가지 말아야 했다","나흘 때까지 제사장을 만나서 했다","아무도 모르게 비밀로 지키도록 했다"],
+   answer:0},
+
+  {id:"lev-027", book:"레위기", chapter:13, type:"short",
+   question:"나병의 여부는 누가 결정했습니까? (레 13)",
+   answer:"제사장"},
+
+  {id:"lev-028", book:"레위기", chapter:14, type:"multiple",
+   question:"나병이 나은 후 정결함을 위해 속건제를 드리는 제사 방법은 무엇입니까? (레 14)",
+   options:["화제","전제","거제","요제"],
+   answer:3},
+
+  {id:"lev-029", book:"레위기", chapter:14, type:"multiple",
+   question:"유출이 깨끗해진 후 정결하게 되기 위해 하나님께 드리는 제사는 무엇입니까? (레 14)",
+   options:["속죄제와 번제","화목제와 번제","속죄제와 속건제","화목제와 소제"],
+   answer:0},
+
+  {id:"lev-030", book:"레위기", chapter:16, type:"multiple",
+   question:"다음 중 하나님께서 친히 나타나신 곳은 어디입니까? (레 16)",
+   options:["분향단","휘장","속죄소","불두덩"],
+   answer:0},
+
+  {id:"lev-031", book:"레위기", chapter:16, type:"multiple",
+   question:"아사셀을 위하여 제비 뽑은 염소는 어떻게 처리하였습니까? (레 16)",
+   options:["다른 두 마리의 염소처럼 제단에서 태웠다","제사장의 몫으로 구별하여 두었다","가난한 사람들을 위해 사용하였다","아사셀을 위하여 광야로 보냈다"],
+   answer:3},
+
+  {id:"lev-032", book:"레위기", chapter:16, type:"short",
+   question:"이스라엘 백성의 모든 죄를 속하기 위하여 일 년에 한 번씩 지정된 속죄일은 언제입니까? (레 16, 23, 25)",
+   answer:"일곱째 달 10일 (대속죄일, Yom Kippur)"},
+
+  {id:"lev-033", book:"레위기", chapter:16, type:"short",
+   question:"안식일 중의 안식일이라고 할 수 있는 날은 언제입니까? (레 16)",
+   answer:"대속죄일"},
+
+  {id:"lev-034", book:"레위기", chapter:17, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"육체의 생명은 ( )에 있음이라 내가 이 ( )를 너희에게 주어 제단에 뿌려 너희의 생명을 위하여 속죄하게 하였나니 생명이 ( )에 있으므로 ( )가 죄를 속하느니라" (레 17)',
+   answer:"피"},
+
+  {id:"lev-035", book:"레위기", chapter:18, type:"multiple",
+   question:"여호와께서 가나안에 거주하던 족속들을 그 땅에서 쫓아내신 이유는 무엇입니까? (레 18)",
+   options:["그들의 문란한 행위로 그 땅이 더러워졌으므로","그들이 싸우기를 좋아해서","그들의 인구가 많아서","그들이 약한 백성이 아니므로"],
+   answer:0},
+
+  {id:"lev-036", book:"레위기", chapter:19, type:"short",
+   question:"곡식을 거둘 때 모퉁이까지 다 거두지 말고 떨어진 이삭도 줍지 말라고 한 것은 누구를 위한 배려였습니까? (레 19)",
+   answer:"가난한 사람과 거류민"},
+
+  {id:"lev-037", book:"레위기", chapter:19, type:"multiple",
+   question:"\"네 이웃 사랑하기를 네 자신과 같이 사랑하라\"라는 계명이 있는 본문은 어디입니까?",
+   options:["출 3:14","레 19:18","겔 20:9","대하 16:9"],
+   answer:1},
+
+  {id:"lev-038", book:"레위기", chapter:19, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희 각 사람은 부모를 ( )하고 나의 안식일을 ( )하라 나는 너희의 하나님 여호와이니라" (레 19)',
+   answer:"공경 / 경외"},
+
+  {id:"lev-039", book:"레위기", chapter:20, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"만일 누구든지 자기의 아버지나 어머니를 저주하는 자는 반드시 ( ) 그가 자기의 아버지나 어머니를 저주하였은즉 그의 피가 자기에게로 돌아가리라" (레 20)',
+   answer:"죽일지니"},
+
+  {id:"lev-040", book:"레위기", chapter:20, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희는 나에게 거룩할지어다 이는 나 여호와가 거룩하고 내가 또 너희를 나의 ( )로 삼으려고 너희를 만민 중에서 ( )하였음이니라" (레 20)',
+   answer:"소유 / 구별"},
+
+  {id:"lev-041", book:"레위기", chapter:21, type:"multiple",
+   question:"다음 중 '제사장'이 지켜야 할 규례로 맞지 않는 것은 무엇입니까? (레 21)",
+   options:["부모의 시체를 만져서는 안 된다","머리털을 대머리처럼 깎아서 안 된다","살을 베지 말아야 한다","자기의 수염 양쪽을 깎지 말아야 한다"],
+   answer:0},
+
+  {id:"lev-042", book:"레위기", chapter:22, type:"multiple",
+   question:"다음 중 성물을 먹을 수 없는 사람은 누구입니까? (레 22)",
+   options:["과부가 된 제사장의 딸","제사장의 집에서 출생한 자","아론의 자손 중 부정함으로 몸을 물로 씻은 자","일반인이나 품꾼"],
+   answer:3},
+
+  {id:"lev-043", book:"레위기", chapter:22, type:"multiple",
+   question:"다음 중에서 이스라엘 자손이 서원제물이나 자원제물로 번제로 드릴 때 드리는 예물은 무엇입니까? (레 22)",
+   options:["소, 양, 염소의 흠 없는 수컷","소, 양, 염소의 비둘기","소, 양, 비둘기의 흠 없는 수컷","소, 양, 염소의 흠 없는 암컷"],
+   answer:0},
+
+  {id:"lev-044", book:"레위기", chapter:25, type:"short",
+   question:"다음 ( ) 안에 들어갈 말을 보기에서 골라 써넣으십시오.\n보기 - 피, 생명, 희년, 원수, 토지\n① ( )를 영구히 팔지 말 것은 ( )는 내 것임이니라 (레 25)\n② 그 ( ) 먹는 그 사육제에는 내 빚을 다 갚으니, 이 그를 백성 중에서 끊으리니 (레 17)\n③ 오십 년째 해를 거룩하게 하여 그 땅에 있는 모든 주민을 위하여 자유를 공포하라 이 해는 너희의 ( )이니라 (레 25)\n④ 들을 갖지 말며 동포를 원망하지 말며 네 이웃 사랑하기를 네 자신과 같이 사랑하라 (레 19)",
+   answer:"① 토지 ② 피 ③ 희년 ④ 원수"},
+
+  {id:"lev-045", book:"레위기", chapter:22, type:"multiple",
+   question:"다음 내용 중 옳지 않은 것은 무엇입니까? (레 22)",
+   options:["자제가 더하거나 덜한 소를 서원 제물로 드리면 된다","암소의 양양을 막은하고 이이 새끼를 같은 날에 잡지 말라","감사 제물은 그 날로 먹어야 한다","하나님의 성호를 속되게 하지 말아야 한다"],
+   answer:0},
+
+  {id:"lev-046", book:"레위기", chapter:23, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"첫째 달 십사일은 저녁은 여호와의 유월절이요 이 달 열다섯째 날은 여호와의 ( )이니 이레 동안 너희는 무교병을 먹을 것이요" (레 23)',
+   answer:"무교절"},
+
+  {id:"lev-047", book:"레위기", chapter:23, type:"short",
+   question:"하나님께서 이스라엘 자손은 애굽 땅에서 인도하여 내던 때에 초막에 거주하게 하신 것을 기억하면서 지켰던 이레 동안의 절기는 무엇입니까? (레 23)",
+   answer:"초막절"},
+
+  {id:"lev-048", book:"레위기", chapter:24, type:"multiple",
+   question:"성막에 있는 등잔불의 순결한 기름은 무엇입니까? (레 24)",
+   options:["무화과유","감람유","백향유","아카시아유"],
+   answer:1},
+
+  {id:"lev-049", book:"레위기", chapter:24, type:"multiple",
+   question:"애굽 사람이 아버지요 이스라엘 여인이 어머니 사이에서 태어난 아들로, 여호와의 이름을 모독하여 저주하다가 돌에 맞아 죽은 사람은 누구입니까? (레 24)",
+   options:["이디말","나답의 아들","솔로밋의 아들","엘리의 아들"],
+   answer:2},
+
+  {id:"lev-050", book:"레위기", chapter:25, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"입곱째 해에는 그 땅이 쉬어 ( )하게 할지니 이는 여호와께 대한 ( )이라" (레 25)',
+   answer:"안식"},
+
+  {id:"lev-051", book:"레위기", chapter:25, type:"multiple",
+   question:"이스라엘 백성이 가나안 땅에 들어가 매 6년이 마칠 때 거둘 수 있는 수확량은 얼마입니까? (레 25)",
+   options:["2년분","평년작","3년분","반년분"],
+   answer:2},
+
+  {id:"lev-052", book:"레위기", chapter:25, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희는 오십 년째 해를 거룩하게 하여 그 땅에 있는 모든 주민을 위하여 ( )을 공포하라 이 해는 너희의 ( )이니라" (레 25)',
+   answer:"자유 / 희년"},
+
+  {id:"lev-053", book:"레위기", chapter:25, type:"multiple",
+   question:"다음 중 희년에 관한 설명으로 틀린 것은 무엇입니까? (레 25)",
+   options:["일곱 안식년 후의 오십 년째 해로, 자유를 공포한다","가난해서 몸이 팔린 형제들은 가족과 그의 조상의 기업으로 돌아가야 한다","성벽 있는 성내의 가옥은 판 지 만 일 년 내에 무르지 못하면 산 자의 소유로 확정된다","레위 족속의 성읍의 가옥은 무르지 아니하며 산 자의 소유로 확정된다"],
+   answer:2},
+
+  {id:"lev-054", book:"레위기", chapter:26, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희가 내 ( )와 ( )를 준행하면 내가 너희에게 절기에 따라 비를 주리니 땅은 그 ( )을 내고 밭의 나무는 그 ( )를 맺으리라" (레 26)',
+   answer:"규례 / 계명 / 산물 / 열매"},
+
+  {id:"lev-055", book:"레위기", chapter:26, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내가 내 성막을 너희 중에 세우리니 내 마음이 너희를 싫어하지 아니할 것이며 나는 너희 중에 행하여 너희의 ( )이 되고 너희는 내 ( )이 될 것이니라" (레 26)',
+   answer:"하나님 / 백성"},
+
+  {id:"lev-056", book:"레위기", chapter:27, type:"multiple",
+   question:"사람의 값을 여호와께 드리려고 서원하였을 때, 20세부터 60세까지의 남녀가 드려야 하는 금액은 각각 얼마였습니까? (레 27)",
+   options:["은 50세겔, 30세겔","은 40세겔, 30세겔","은 30세겔, 20세겔","은 20세겔, 10세겔"],
+   answer:0},
+
+  {id:"lev-057", book:"레위기", chapter:27, type:"multiple",
+   question:"서원자가 가난하여 정한 값을 감당하지 못할 때는 어떻게 하였습니까? (레 27)",
+   options:["정한 값의 5분의 1만 드린다","면제받는다","제사장이 서원자의 형편대로 값을 정한다","다른 사람이 대신하여 드린다"],
+   answer:2},
+
+  {id:"lev-058", book:"레위기", chapter:27, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"그리고 그 땅의 ( ) 곧 그 땅의 곡식이나 나무의 열매는 그 ( )은 여호와의 것이니 여호와의 ( )이라" (레 27)',
+   answer:"십분의 일 / 십분의 일 / 성물"},
+
+  // ===== 민수기 (70문제) =====
+  {id:"num-001", book:"민수기", chapter:1, type:"short",
+   question:"하나님께서 누구를 대상으로, 무슨 목적으로 인구조사를 실시하라고 모세에게 명령하셨습니까? (민 1)",
+   answer:"20세 이상으로 싸움에 나갈 자, 군대를 편성하기 위하여"},
+
+  {id:"num-002", book:"민수기", chapter:1, type:"multiple",
+   question:"이스라엘이 광야에서 첫 인구조사를 한 장소는 어디입니까? (민 1)",
+   options:["가데스 바네아","르비딤","시내 광야","모압 평지"],
+   answer:2},
+
+  {id:"num-003", book:"민수기", chapter:1, type:"multiple",
+   question:"다음 중 계수에서 제외된 지파는 어느 지파입니까? (민 1)",
+   options:["레위","유다","시므온","르우벤"],
+   answer:0},
+
+  {id:"num-004", book:"민수기", chapter:1, type:"short",
+   question:"이스라엘의 열두 지파 가운데 야곱의 아들이 아니면서 지파를 형성한 자들은 누구누구입니까? (민 1)",
+   answer:"에브라임, 므낫세"},
+
+  {id:"num-005", book:"민수기", chapter:1, type:"multiple",
+   question:"다음 중 레위 지파가 해야 할 일에 해당하지 않는 것은 무엇입니까? (민 1)",
+   options:["성막과 모든 기구를 운반해야 한다","성막 주위에 진을 쳐야 한다","외인이 오면 맞이해야 한다","성막을 걷고 세워야 한다"],
+   answer:2},
+
+  {id:"num-006", book:"민수기", chapter:2, type:"multiple",
+   question:"다음 중 동쪽 해 돋는 쪽에 진 친 지파는 어느 지파입니까? (민 2)",
+   options:["유다·잇사갈·스불론","르우벤·시므온·갓","에브라임·므낫세·베냐민","단·아셀·납달리"],
+   answer:0},
+
+  {id:"num-007", book:"민수기", chapter:3, type:"multiple",
+   question:"다음 중 아론의 장자는 누구입니까? (민 3)",
+   options:["나답","아비후","엘르아살","이다말"],
+   answer:0},
+
+  {id:"num-008", book:"민수기", chapter:4, type:"short",
+   question:"다음 레위 자손과 그 역할을 서로 관련 있는 것끼리 연결하십시오. (민 4)\n① 게르손 자손  ② 고핫 자손  ③ 므라리 자손\n㉠ 성물  ㉡ 휘장과 줄  ㉢ 널판과 기둥",
+   answer:"① 게르손-㉡ / ② 고핫-㉠ / ③ 므라리-㉢"},
+
+  {id:"num-009", book:"민수기", chapter:4, type:"short",
+   question:"회막 일을 위해 계수된 레위 자손은 몇 세부터 몇 세까지였습니까? (민 4)",
+   answer:"30~50세"},
+
+  {id:"num-010", book:"민수기", chapter:4, type:"multiple",
+   question:"광야에서 행진하기 위해 진영을 떠날 때 성소와 성소 기구들을 메는 일을 맡은 이들은 누구입니까? (민 4)",
+   options:["아론과 그의 아들들","게르손 자손","고핫 자손","므라리 자손"],
+   answer:0},
+
+  {id:"num-011", book:"민수기", chapter:5, type:"multiple",
+   question:"다음 중 남편이 아내를 의심할 때 그 의심의 타당성 여부를 밝히는 절차로 틀린 것은 무엇입니까? (민 5)",
+   options:["아내를 제사장에게 데리고 가서 기억의 소제를 드린다","제사장은 토기에 거룩한 물을 담고 성막 바닥의 티끌을 취하여 물에 넣는다","제사장은 여인에게 저주가 되게 하는 쓴 물을 마시게 한다","다음에는 전혀 이상이 없으면 남편이 대신 벌을 받아야 한다"],
+   answer:3},
+
+  {id:"num-012", book:"민수기", chapter:6, type:"multiple",
+   question:"다음 중 나실인의 서원을 하고 자기 몸을 구별하여 여호와께 드리려는 자가 지켜야 할 사항으로 옳지 않은 것은 무엇입니까? (민 6)",
+   options:["포도주와 독주를 멀리해야 한다","삭도를 머리에 대지 말아야 한다","시체를 가까이 하지 말아야 하나 부모 형제가 죽은 때는 그렇지 않다","누가 갑자기 곁에서 죽어서 나실인의 머리를 더럽힌 때는 일곱째 날에 머리를 밀어야 한다"],
+   answer:2},
+
+  {id:"num-013", book:"민수기", chapter:6, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"여호와는 네게 복을 주시고 너를 지키시기를 원하며 여호와는 그의 얼굴을 네게 비추사 ( ) 베푸시기를 원하며 여호와는 그 얼굴을 네게로 향하여 드사 ( ) 주시기를 원하노라 할지니라" (민 6)',
+   answer:"은혜 / 평강"},
+
+  {id:"num-014", book:"민수기", chapter:7, type:"multiple",
+   question:"모세가 장막 세우기를 마친 후 그 모든 기구를 어떻게 거룩하게 구별하였습니까? (민 7)",
+   options:["피를 뿌려서","물로 씻어서","기름을 발라서","속죄제를 드려서"],
+   answer:2},
+
+  {id:"num-015", book:"민수기", chapter:7, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"모세가 수레와 소들을 받아 레위인에게 주었으니 곧 게르손 자손에게는 ( ) 수레 둘과 소 네 마리를 주었고 므라리 자손에게는 ( ) 수레 넷과 소 여덟 마리를 주고 제사장 아론의 아들 이다말에게 감독하게 하였더라" (민 7)',
+   answer:"그 직임대로"},
+
+  {id:"num-016", book:"민수기", chapter:7, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"모세가 회막에 들어가서 여호와께 말하려 할 때에 ( ), 곧 ( ) 위의 두 ( ) 사이에서 자기에게 말씀하시는 목소리를 들으니라" (민 7)',
+   answer:"증거궤 / 속죄소 / 그룹"},
+
+  {id:"num-017", book:"민수기", chapter:8, type:"short",
+   question:"이스라엘의 12지파 중에서 제사장이 선출된 지파는 어느 지파입니까? (민 8)",
+   answer:"레위 지파"},
+
+  {id:"num-018", book:"민수기", chapter:8, type:"multiple",
+   question:"다음 중에서 레위인을 여호와께 드릴 때 정결하게 하는 의식이 아닌 것은 무엇입니까? (민 8)",
+   options:["속죄의 물을 뿌린다","전신을 삭도로 밀게 한다","의복을 빨게 한다","기름을 머리에 붓는다"],
+   answer:3},
+
+  {id:"num-019", book:"민수기", chapter:8, type:"multiple",
+   question:"회막에 들어가서 복무하고 봉사할 수 있는 레위인의 나이는 몇 세부터였습니까? (민 8)",
+   options:["20세","25세","30세","35세"],
+   answer:1},
+
+  {id:"num-020", book:"민수기", chapter:8, type:"multiple",
+   question:"이스라엘 자손 중에서 레위인을 구별해야 하는 이유는 무엇이었습니까? (민 8)",
+   options:["모세의 가문이므로","하나님께서 특별히 사랑하셨기 때문에","하나님께서 모든 처음 난 대신 레위인을 취하셨기 때문에","레위인들이 강력히 원했기 때문에"],
+   answer:2},
+
+  {id:"num-021", book:"민수기", chapter:9, type:"short",
+   question:"이스라엘 백성이 애굽에서 나온 후 처음으로 유월절을 지킨 곳과 그곳에 머문 기간을 쓰십시오. (민 9~10)",
+   answer:"시내 광야, 약 1년"},
+
+  {id:"num-022", book:"민수기", chapter:9, type:"short",
+   question:"광야 생활을 하는 동안 이스라엘 백성들이 행진하거나 멈추는 기준이 되었던 것은 무엇입니까? (민 9)",
+   answer:"구름이 성막에서 떠오르면 출발하고, 구름이 머무르면 멈추었다"},
+
+  {id:"num-023", book:"민수기", chapter:10, type:"short",
+   question:"하나님은 모세에게 회중을 소집하며 진영을 출발하게 하기 위하여 무엇을 만들라고 명령하셨습니까? (민 10)",
+   answer:"은 나팔 두 개"},
+
+  {id:"num-024", book:"민수기", chapter:10, type:"multiple",
+   question:"다음 중 나팔을 불어야 할 때에 해당하지 않는 것은 무엇입니까? (민 10)",
+   options:["지휘관들을 모을 때","진영이 출발하거나 대적을 치러 나갈 때","초하루 번제물을 드릴 때","하나님께 현현하실 때"],
+   answer:3},
+
+  {id:"num-025", book:"민수기", chapter:11, type:"short",
+   question:'다음은 무엇에 대한 설명입니까?\n"깟씨와 같고 모양은 진주와 같은 것이라 … 맷돌에 갈기도 하며 절구에 찧기도 하고 가마에 삶기도 하여 과자를 만들었으니 그 맛이 기름 섞은 과자 맛 같았더라" (민 11)',
+   answer:"만나"},
+
+  {id:"num-026", book:"민수기", chapter:11, type:"multiple",
+   question:"다음 중 '기브롯 핫다아와'의 뜻은 무엇입니까? (민 11)",
+   options:["불사름","탐욕의 무덤","하나님께서 여기까지 도우셨다","은혜의 자리"],
+   answer:1},
+
+  {id:"num-027", book:"민수기", chapter:12, type:"short",
+   question:"모세의 누이 미리암이 나병에 걸린 이유는 무엇입니까? (민 12)",
+   answer:"구스 여자를 취한 모세를 비방했기 때문에"},
+
+  {id:"num-028", book:"민수기", chapter:12, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"이 사람 모세는 ( )이 지면의 모든 사람보다 더하더라" (민 12)',
+   answer:"온유함"},
+
+  {id:"num-029", book:"민수기", chapter:13, type:"multiple",
+   question:"모세가 가나안 땅으로 정탐꾼을 보낸 곳은 어디입니까? (민 13)",
+   options:["바란 광야","시내 광야","모압 평지","시날 광야"],
+   answer:0},
+
+  {id:"num-030", book:"민수기", chapter:13, type:"short",
+   question:"여호수아는 어느 지파 소속이며, 그 아버지의 이름은 무엇입니까? (민 13)",
+   answer:"에브라임 지파, 눈"},
+
+  {id:"num-031", book:"민수기", chapter:13, type:"short",
+   question:"가나안 땅의 정탐꾼은 몇 명이었으며, 정탐은 며칠 동안 이루어졌습니까? (민 13)",
+   answer:"12명, 40일"},
+
+  {id:"num-032", book:"민수기", chapter:13, type:"short",
+   question:"가나안 땅을 정탐한 사람들이 돌아올 때 가지고 온 것은 무엇입니까? (민 13)",
+   answer:"포도송이, 석류, 무화과"},
+
+  {id:"num-033", book:"민수기", chapter:14, type:"short",
+   question:"가나안 정탐꾼들 가운데 긍정적인 보고를 한 사람은 누구누구였습니까? (민 14)",
+   answer:"여호수아, 갈렙"},
+
+  {id:"num-034", book:"민수기", chapter:14, type:"multiple",
+   question:"하나님이 가나안 정탐 후 이스라엘 백성에게 40년 동안 광야에서 방황하게 될 것이라고 하셨는데, 왜 40년을 말씀하셨습니까? (민 14)",
+   options:["정탐한 날 수인 40일의 한 날을 1년으로 따져서","모세가 40년 동안 광야 생활을 했으므로","40세는 한 세대의 의미가 강하기 때문에","백성들이 요청했으므로"],
+   answer:0},
+
+  {id:"num-035", book:"민수기", chapter:16, type:"short",
+   question:"레위의 증손이요 고핫의 손자요 이스할의 아들로서, 다단, 아비람 및 다른 250명의 지휘관과 함께 모세에게 반역을 일으켰던 사람은 누구입니까? (민 16)",
+   answer:"고라"},
+
+  {id:"num-036", book:"민수기", chapter:16, type:"multiple",
+   question:"고라가 반역을 일으킨 이유는 무엇입니까? (민 16)",
+   options:["가나안으로의 여정이 너무 늦어서","지휘관에 불만을 품어서","제사장직 또본 때문에","제물의 분배 때문에"],
+   answer:2},
+
+  {id:"num-037", book:"민수기", chapter:16, type:"short",
+   question:"고라와 그의 무리는 어떤 식의 죽음을 맞이하였습니까? (민 16)",
+   answer:"갈라진 땅 속에 빠져 죽었다"},
+
+  {id:"num-038", book:"민수기", chapter:17, type:"multiple",
+   question:"지휘관의 지팡이 12개를 취하여 증거궤 앞에 두고, 순이 나고 꽃이 피어 살구 열매를 맺은 것은 누구의 지팡이입니까? (민 17)",
+   options:["아브라함","아론","모세","여호수아"],
+   answer:1},
+
+  {id:"num-039", book:"민수기", chapter:18, type:"multiple",
+   question:"하나님은 이스라엘 자손의 땅에 기업이 없었던 레위인들을 위해 대신 무엇을 기업으로 주셨습니까? (민 18)",
+   options:["이스라엘의 십일조","제사장의 십일조","화목제의 일부","속죄제의 일부"],
+   answer:0},
+
+  {id:"num-040", book:"민수기", chapter:18, type:"multiple",
+   question:"다음 중에서 레위인이 이스라엘 자손에게 받은 십일조에서 여호와께 드리는 기제물은 무엇입니까? (민 18)",
+   options:["십일조의 1/5","십일조의 십일조","무조건 초태생","좋은 것만 골라서"],
+   answer:1},
+
+  {id:"num-041", book:"민수기", chapter:18, type:"multiple",
+   question:"레위인들이 기업으로 받은 십일조는 누구에게 돌렸습니까? (민 18)",
+   options:["모세","아론","이스할","시몬이"],
+   answer:1},
+
+  {id:"num-042", book:"민수기", chapter:20, type:"short",
+   question:'다음은 누구에게 한 말입니까?\n"청하건대 우리에게 당신의 땅 가운데로 지나가게 하소서 … 왕의 큰길로만 지나가고 당신의 지경에서 나가기까지 우편으로나 좌편으로나 치우치지 아니하리이다" (민 20)',
+   answer:"모세가 에돔 왕에게 한 말"},
+
+  {id:"num-043", book:"민수기", chapter:20, type:"short",
+   question:"여호와의 명령에 따라 모세는 아론의 옷을 벗겨 누구에게 입혔습니까? (민 20)",
+   answer:"아론의 아들 엘르아살"},
+
+  {id:"num-044", book:"민수기", chapter:20, type:"short",
+   question:"하나님께서는 왜 모세와 아론이 가나안 땅에 들어가지 못할 것이라 하셨습니까? (민 20)",
+   answer:"여호와를 믿지 않고, 이스라엘 자손의 거룩함을 나타내지 않아서"},
+
+  {id:"num-045", book:"민수기", chapter:21, type:"multiple",
+   question:"홍해 길을 따라 에돔 땅을 우회할 때 길로 인해 하나님과 모세를 원망한 이스라엘 백성에게 하나님이 내리신 심판은 무엇입니까? (민 21)",
+   options:["하늘에서 불을 내려 진을 태움","천둥 번개로 백성을 죽게 함","불뱀을 보내 물려 죽게 함","열병과 기근으로 고생하게 함"],
+   answer:2},
+
+  {id:"num-046", book:"민수기", chapter:21, type:"short",
+   question:"불뱀에 물린 사람들이 살아날 수 있는 방법은 무엇이었습니까? (민 21)",
+   answer:"장대 위에 매달린 놋뱀을 쳐다보는 일"},
+
+  {id:"num-047", book:"민수기", chapter:21, type:"short",
+   question:"이스라엘 백성이 요단 동쪽을 점령했을 당시, 아모리 왕과 바산 왕은 각각 누구였습니까? (민 21)",
+   answer:"시혼, 옥"},
+
+  {id:"num-048", book:"민수기", chapter:22, type:"short",
+   question:"모압 왕 발락이 이스라엘 자손의 많음으로 인하여 심히 두려움을 느꼈을 때, 그가 불러오게 한 사람은 누구이며, 그 목적은 무엇이었습니까? (민 22)",
+   answer:"브올의 아들 발람, 이스라엘 백성을 저주하기 위해서"},
+
+  {id:"num-049", book:"민수기", chapter:23, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"하나님이 ( )하지 않은 자를 내가 어찌 ( )하며 여호와께서 꾸짖지 않으신 자를 내가 어찌 꾸짖으랴" (민 23)',
+   answer:"저주"},
+
+  {id:"num-050", book:"민수기", chapter:23, type:"fill",
+   question:"다음은 발람이 이스라엘에 대하여 축복한 내용입니다. ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너를 축복하는 자마다 ( )을 받을 것이요 너를 저주하는 자마다 ( )를 받을지로다" (민 23)',
+   answer:"복 / 저주"},
+
+  {id:"num-051", book:"민수기", chapter:25, type:"multiple",
+   question:"제사장 아론의 손자이자 엘르아살의 아들로, 이스라엘 백성 사이에 있었던 염병을 그치게 했던 의분의 사람은 누구입니까? (민 25)",
+   options:["나답","아비후","엘리에셀","비느하스"],
+   answer:3},
+
+  {id:"num-052", book:"민수기", chapter:25, type:"multiple",
+   question:"하나님께서 비느하스에게 평화의 언약, 곧 그와 그의 후손에 영원한 제사장 직분의 언약을 주신 이유는 무엇입니까? (민 25)",
+   options:["율법을 잘 가르쳤으므로","하나님을 위하여 질투하여 이스라엘을 속죄하였으므로","제사장의 본을 보였으므로","아론이 특별히 사랑했으므로"],
+   answer:1},
+
+  {id:"num-053", book:"민수기", chapter:26, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"아므람의 아내 이름은 ( )이니 레위의 딸이요 애굽에서 레위에게서 난 자라 그가 아므람에게서 아론과 모세와 그의 누이 미리암을 낳았고" (민 26)',
+   answer:"요게벳"},
+
+  {id:"num-054", book:"민수기", chapter:26, type:"multiple",
+   question:"르우벤의 자손 중 고라의 무리에 들어가 모세를 반역하다가 결국 죽임을 당한 자들의 이름은 무엇입니까? (민 26)",
+   options:["다단·아비람","하녹·발루","엘리압·느무엘","이마이·아긴"],
+   answer:0},
+
+  {id:"num-055", book:"민수기", chapter:26, type:"multiple",
+   question:"고라가 땅이 갈라져서 죽을 때 그의 가족들과 소유물은 어떻게 되었습니까? (민 26)",
+   options:["모두 땅속에 묻혔다","가족들만 죽고 소유물은 그대로 있었다","그의 아들들은 제외하고 묻혔다","가족들은 살고 소유물만 묻혔다"],
+   answer:2},
+
+  {id:"num-056", book:"민수기", chapter:27, type:"multiple",
+   question:"어떤 사람이 아들 없이 죽으면 그의 기업은 딸에게 돌려주라 합니다. 이러한 판결 규례가 나오도록 두 번씩 청을 제출한 사람은 누구입니까? (민 27)",
+   options:["엘르아살","비느하스","여호수아","슬로핫의 딸들"],
+   answer:3},
+
+  {id:"num-057", book:"민수기", chapter:28, type:"short",
+   question:"매일 아침과 저녁마다 드리는 번제는 무엇이라 합니까? (민 28)",
+   answer:"상번제"},
+
+  {id:"num-058", book:"민수기", chapter:28, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"또 그들에게 이르라 너희가 여호와께 드릴 화제는 이러하니 일 년 되고 ( )을 매일 두 마리씩 상번제로 드리되" (민 28)',
+   answer:"흠 없는 숫양"},
+
+  {id:"num-059", book:"민수기", chapter:30, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"사람이 여호와께 ( )하였거나 결심하고 ( )하였으면 깨뜨리지 말고 그 입에서 나온 대로 다 이행할 것이니라" (민 30)',
+   answer:"서원 / 서약"},
+
+  {id:"num-060", book:"민수기", chapter:30, type:"multiple",
+   question:"다음 중 서원에 관한 설명으로 옳지 않은 것은 무엇입니까? (민 30)",
+   options:["서원한 것은 모두 이행해야 한다","남편이 듣고 허락하지 않은 아내의 서약은 무효다","아버지가 듣고 허락하지 않은 한 처녀의 서약은 무효다","남편이 들은 지 정해 후에 그것을 무효하게 하면 아내가 죄를 담당해야 한다"],
+   answer:3},
+
+  {id:"num-061", book:"민수기", chapter:32, type:"short",
+   question:"이스라엘 자손 중 요단 동쪽 길르앗 땅을 기업으로 받기를 요구했던, 정복 전쟁에 참여한 후 돌아와 받기로 약속받은 이스라엘의 세 지파는 어느 지파입니까? (민 32)",
+   answer:"갓 자손, 르우벤 자손, 므낫세 반 지파"},
+
+  {id:"num-062", book:"민수기", chapter:32, type:"multiple",
+   question:"요단 동편에 기업을 요구한 세 지파가 이를 위해 약속한 조건은 무엇입니까? (민 32)",
+   options:["여호와의 율법을 그대로 준수하기로 서약했다","요단강 서편에서 기업을 얻게 될 지파들과 긴밀한 관계를 유지하기로 약속했다","무장하고 다른 지파들보다 먼저 가서 기업을 얻을 때까지 돌아오지 않겠다고 약속했다","해마다 수백 마리의 양들을 다른 지파들에게 제공하기로 했다"],
+   answer:2},
+
+  {id:"num-063", book:"민수기", chapter:33, type:"multiple",
+   question:"아론은 호르 산에서 몇 세에 죽었습니까? (민 33)",
+   options:["110세","113세","120세","123세"],
+   answer:2},
+
+  {id:"num-064", book:"민수기", chapter:33, type:"short",
+   question:"이스라엘이 행진한 노정 가운데 샘물 열둘과 종려 칠십 그루가 있던 곳은 어디입니까? (민 33)",
+   answer:"엘림"},
+
+  {id:"num-065", book:"민수기", chapter:34, type:"multiple",
+   question:"이스라엘 자손 중 몇 개의 지파가 요단 서편에서 기업을 받았습니까? (민 34)",
+   options:["9지파","9지파 반","10지파","10지파 반"],
+   answer:1},
+
+  {id:"num-066", book:"민수기", chapter:34, type:"multiple",
+   question:"다음 중 모세에게 요단강 동쪽을 기업으로 받지 않은 지파는 어느 지파입니까? (민 34)",
+   options:["베냐민 지파","르우벤 지파","갓 지파","므낫세 지파"],
+   answer:0},
+
+  {id:"num-067", book:"민수기", chapter:35, type:"multiple",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?\n\"너희가 레위인에게 줄 성읍은 살인자에게 피하게 할 도피성으로 ( ) 성읍이요\" (민 35)",
+   options:["4","6","8","10"],
+   answer:1},
+
+  {id:"num-068", book:"민수기", chapter:35, type:"multiple",
+   question:"다음 중 도피성에 관한 설명으로 옳지 않은 것은 무엇입니까? (민 35)",
+   options:["부지중에 살인한 자가 피하는 곳이다","살인자가 회중 앞에 서서 재판 받기까지 죽음을 피할 수 있었다","세 성읍은 같은 동편에, 세 성읍은 서편에 두었다","타국인이나 이스라엘 중에 거류하는 자들에게는 해당되지 않았다"],
+   answer:3},
+
+  {id:"num-069", book:"민수기", chapter:35, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"너희가 거주하는 땅을 더럽히지 말라 ( )는 땅을 더럽히니 ( )를 흘리게 한 곳은 그 ( )를 흘리게 한 자의 ( )가 아니면 속함을 받을 수 없느니라" (민 35)',
+   answer:"피"},
+
+  {id:"num-070", book:"민수기", chapter:36, type:"multiple",
+   question:"딸들이 지파의 기업을 이어받은 경우, 그들이 조상의 기업을 보전하기 위해 지켜야 할 사항은 무엇이었습니까? (민 36)",
+   options:["그 기업을 포기해야 한다","자기 조상 지파의 종족에 속한 사람에게만 시집갈 수 있었다","반드시 지파의 종족에게 허락을 받아야 했다","결코 시집가서는 안 되었다"],
+   answer:1},
+
+  // ===== 신명기 (62문제) =====
+  {id:"deu-001", book:"신명기", chapter:1, type:"short",
+   question:"신명기는 누가 어디에서 설교한 내용입니까? (신 1)",
+   answer:"모세, 모압 땅"},
+
+  {id:"deu-002", book:"신명기", chapter:1, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희 각 지파에서 ( )가 있고 인정 받는 자들을 택하여 너희의 수령을 살으리라 곧 지파대로 ( )과 ( )과 ( )과 ( )을 삼고" (신 1)',
+   answer:"지혜 / 천부장 / 백부장 / 십부장 / 조장"},
+
+  {id:"deu-003", book:"신명기", chapter:2, type:"multiple",
+   question:"다음은 이스라엘 백성이 요단 동쪽을 통과할 때 그곳 세 족속과 전쟁을 하지 말 것을 당부한 말씀입니다. ( ) 안에 해당하지 않는 나라(족속)은 어디입니까? (신 2)",
+   options:["에서의 자손","모압","암몬","아모리"],
+   answer:3},
+
+  {id:"deu-004", book:"신명기", chapter:2, type:"multiple",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?\n\"가데스 바네아에서 떠나 세렛 시내를 건너기까지 ( )년 동안이라\" (신 2)",
+   options:["30","33","35","38"],
+   answer:3},
+
+  {id:"deu-005", book:"신명기", chapter:3, type:"multiple",
+   question:"다음은 하나님이 모세에게 하신 말씀입니다. ( ) 안에 알맞은 말은 무엇입니까?\n\"너는 ( ) 산꼭대기에 올라가서 눈을 들어 동서남북을 바라보고 네 눈으로 그 땅을 바라보라 너는 이 요단을 건너지 못할 것임이니라\" (신 3)",
+   options:["비스가","호르","호렙","갈멜"],
+   answer:0},
+
+  {id:"deu-006", book:"신명기", chapter:4, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내가 나의 하나님 여호와께서 명령하신 대로 ( )와 ( )를 너희에게 가르쳤나니 이는 너희가 들어가서 차지할 땅에서 그대로 행하게 하려 함인즉 너희는 지켜 행하라 이것이 여러 민족 앞에서 너희의 ( )요 ( )이라" (신 4)',
+   answer:"규례 / 법도 / 지혜 / 지식"},
+
+  {id:"deu-007", book:"신명기", chapter:4, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네 하나님 여호와는 ( )이시요 ( )하시는 하나님이시니라" (신 4)',
+   answer:"소멸하는 불 / 질투"},
+
+  {id:"deu-008", book:"신명기", chapter:4, type:"short",
+   question:'다음은 무엇에 관한 설명입니까?\n"그 때에 모세가 요단 이쪽 해 돋는 쪽에서 세 성읍을 구별하였으니 … 하나는 광야 평원에 있는 베셀이요 … 하나는 길르앗 라못이요 … 하나는 바산 골란이라" (신 4)',
+   answer:"도피성"},
+
+  {id:"deu-009", book:"신명기", chapter:5, type:"short",
+   question:"제9계명은 무엇입니까? (신 5)",
+   answer:"네 이웃에 대하여 거짓 증거하지 말지니라"},
+
+  {id:"deu-010", book:"신명기", chapter:6, type:"fill",
+   question:"쉐마(Shema)로 불리는 다음 구절의 ( ) 안에 들어갈 말을 순서대로 쓰십시오.",
+   body:'"이스라엘아 들으라 우리 하나님 ( )는 오직 ( )이신 여호와이시니 너는 ( )을 다하고 ( )을 다하고 ( )을 다하여 네 하나님 여호와를 사랑하라 오늘 내가 네게 명하는 이 말씀을 너는 ( )에 새기고 네 자녀에게 부지런히 가르치며 네가 ( )에 앉았을 때에든지 ( )을 갈 때에든지 누워 있을 때에든지 일어날 때에든지 이 말씀을 강론할 것이며 너는 또 그것을 네 ( )에 매어 기호로 삼고 네 ( )에 붙여 표로 삼고 또 네 집 ( )과 바깥 문에 기록할지니라" (신 6)',
+   answer:"여호와 / 유일 / 마음 / 뜻 / 힘 / 마음 / 집 / 길 / 손목 / 미간 / 문설주"},
+
+  {id:"deu-011", book:"신명기", chapter:7, type:"short",
+   question:"가나안에 거주하던 일곱 족속의 이름을 모두 쓰십시오. (신 7)",
+   answer:"헷, 기르가스, 아모리, 가나안, 브리스, 히위, 여부스"},
+
+  {id:"deu-012", book:"신명기", chapter:7, type:"multiple",
+   question:"하나님이 가나안 일곱 족속에 대하여 이스라엘 백성에게 당부하신 말씀에 해당되지 않는 것은 무엇입니까? (신 7)",
+   options:["어떤 언약도 하지 말라","그들의 소유를 잘 활용하여 구제하라","그들과 혼인하지 말라","그들을 진멸하라"],
+   answer:1},
+
+  {id:"deu-013", book:"신명기", chapter:8, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네 하나님 여호와께서 이 ( )년 동안에 네게 ( )를 걷게 하신 것을 기억하라 … 너를 낮추시며 너를 ( )하사 네 마음이 어떠한지 그 ( )을 지키는지 지키지 않는지 알려 하심이라" (신 8)',
+   answer:"사십 / 광야 / 시험 / 명령"},
+
+  {id:"deu-014", book:"신명기", chapter:8, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너를 낮추시며 너를 주리게 하시며 또 너도 알지 못하며 네 조상들도 알지 못하던 ( )을 네게 먹이신 것은 사람이 ( )으로만 사는 것이 아니요 ( )의 입에서 나오는 모든 ( )으로 사는 줄을 네가 알게 하려 하심이니라" (신 8)',
+   answer:"만나 / 떡 / 여호와 / 말씀"},
+
+  {id:"deu-015", book:"신명기", chapter:8, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"이 사십 년 동안에 네 ( )이 헤어지지 아니하였고 네 ( )이 부르트지 아니하였느니라" (신 8)',
+   answer:"의복 / 발"},
+
+  {id:"deu-016", book:"신명기", chapter:8, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네 은과 금이 증식되며 네 소유가 다 풍부하게 될 때에 네 마음이 ( )하여" (신 8)',
+   answer:"교만"},
+
+  {id:"deu-017", book:"신명기", chapter:9, type:"short",
+   question:"모세는 언약의 돌판을 받기 위해 며칠 동안 시내 산에 머물렀습니까? (신 9)",
+   answer:"40일"},
+
+  {id:"deu-018", book:"신명기", chapter:9, type:"short",
+   question:"모세가 여호와께 받은 십계명의 두 돌판을 깨뜨린 이유는 무엇입니까? (신 9)",
+   answer:"이스라엘 백성이 금송아지를 만들어 여호와께서 명령하신 도를 떠났기 때문"},
+
+  {id:"deu-019", book:"신명기", chapter:10, type:"multiple",
+   question:"아론이 죽은 후 그를 이어 제사장 직임을 행한 사람은 누구입니까? (신 10)",
+   options:["엘르아살","엘리에셀","이다말","비느하스"],
+   answer:0},
+
+  {id:"deu-020", book:"신명기", chapter:10, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"애굽에 내려간 네 조상들이 겨우 ( )인이었으나 이제는 네 하나님 여호와께서 너를 하늘의 ( ) 같이 많게 하셨느니라" (신 10)',
+   answer:"70 / 별"},
+
+  {id:"deu-021", book:"신명기", chapter:10, type:"multiple",
+   question:"야훼 하나님의 성품에 관한 설명으로 옳지 않은 것은 무엇입니까? (신 10)",
+   options:["질투하지 않으시는 분","사람을 외모로 보지 않으시는 분","뇌물을 받지 않으시는 분","고아와 과부를 위하여 정의를 행하시는 분"],
+   answer:0},
+
+  {id:"deu-022", book:"신명기", chapter:11, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내가 오늘 너희에게 명하는 내 명령을 너희가 만일 ( )하여 너희의 하나님 여호와를 ( )하며 마음을 다하고 뜻을 다하여 섬기면 여호와께서 너희의 땅에 ( ) 비와 ( ) 비를 적당한 때에 내리시리니" (신 11)',
+   answer:"청종 / 사랑 / 이른 / 늦은"},
+
+  {id:"deu-023", book:"신명기", chapter:11, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네가 네 하나님 여호와의 명령을 듣고 들어가는 곳에서 ( )에서 축복을 선포하고 ( )에서 저주를 선포하라" (신 11)',
+   answer:"그리심 산 / 에발 산"},
+
+  {id:"deu-024", book:"신명기", chapter:11, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?\n\"너희가 만일 내가 오늘 너희에게 명하는 너희의 하나님 여호와의 명령을 들으면 ( )이 될 것이요\" (신 11)",
+   answer:"복"},
+
+  {id:"deu-025", book:"신명기", chapter:13, type:"multiple",
+   question:"다음 중 이스라엘 백성이 준수해야 할 사항과 거리가 먼 것은 무엇입니까? (신 13~14)",
+   options:["어떤 선지자가 말한 이적과 기사가 이루어졌을지라도, 그가 다른 신들을 섬기자고 말할 때에는 그 말을 따르지 말아야 한다","죽은 자를 위하여 자기 몸을 베면 안 된다","가증한 것은 무엇이든지 먹지 말아야 한다","스스로 죽은 것은 먹어도 된다"],
+   answer:3},
+
+  {id:"deu-026", book:"신명기", chapter:14, type:"multiple",
+   question:"다음 중 먹을 수 있는 짐승은 무엇입니까? (신 14)",
+   options:["네 발 가진 짐승","굽이 갈라진 짐승","새김질하는 짐승","굽이 갈라지고 새김질도 하는 짐승"],
+   answer:3},
+
+  {id:"deu-027", book:"신명기", chapter:14, type:"multiple",
+   question:"다음 중 십일조에 관한 설명으로 옳지 않은 것은 무엇입니까? (신 14)",
+   options:["매년 토지 소산의 십일조를 드려야 한다","포도주와 기름의 십일조는 드리지 않아도 된다","하나님의 이름을 두려고 택하신 곳이 너무 멀 경우 돈으로 바꾸어 가져갈 수 있다","같은 성읍에 거주하는 레위인을 저버리면 안 된다"],
+   answer:1},
+
+  {id:"deu-028", book:"신명기", chapter:14, type:"multiple",
+   question:"다음 ( ) 안에 해당하는 내용이 아닌 것은 무엇입니까?\n\"매 삼 년 끝에 그 해 소산의 십분의 일을 다 내어 네 성읍에 저축하여 너희 중에 ( )에게 주어 ... 복을 주시리라\" (신 14)",
+   options:["제사장","기업이 없는 레위인","성중에 거류하는 객","고아와 과부들"],
+   answer:0},
+
+  {id:"deu-029", book:"신명기", chapter:15, type:"multiple",
+   question:"다음 중 옳지 않은 것은 무엇입니까? (신 15)",
+   options:["매 7년 끝에는 면제하라","가난한 형제가 있으면 반드시 네 손을 펴서 그에게 필요한 대로 쓸 것을 꾸어주되 면제년 한 해 진다는 안 된다","6년 동안 종으로 섬겼던 종속은 일곱째 해에는 놓아 자유롭게 하라","종이 주인을 떠나지 않겠다고 하면 송곳을 가져다 그의 귀를 대고 뚫라"],
+   answer:0},
+
+  {id:"deu-030", book:"신명기", chapter:16, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"너희 타작 마당과 포도주 틀의 소출을 거두어 들인 이레 동안에 ( )을 지킬 것이요" (신 16)',
+   answer:"초막절"},
+
+  {id:"deu-031", book:"신명기", chapter:17, type:"short",
+   question:"재판장의 판결에 불복하는 사람은 어떻게 해야 합니까? (신 17)",
+   answer:"그 사람을 죽여서 이스라엘 중에서 악을 제하여야 한다"},
+
+  {id:"deu-032", book:"신명기", chapter:17, type:"multiple",
+   question:"왕의 자격과 준수 사항으로 옳지 않은 것은 무엇입니까? (신 17)",
+   options:["타국인도 왕이 될 수 있다","병마를 많이 두지 말아야 한다","아내를 많이 두어 마음이 미혹되지 하지 말아야 한다","자기를 위하여 은금을 많이 쌓지 말아야 한다"],
+   answer:0},
+
+  {id:"deu-033", book:"신명기", chapter:18, type:"fill",
+   question:"다음 레위 사람에 관한 설명 중, ( ) 안에 공통으로 들어갈 말은 무엇입니까?",
+   body:'"그들이 그들의 형제 중에서 ( )을 가지지 않을 것은 여호와께서 그들의 ( )이 되심이라 그들에게 말씀하심과 같으니라" (신 18)',
+   answer:"기업"},
+
+  {id:"deu-034", book:"신명기", chapter:18, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"만일 선지자가 있어 여호와의 이름으로 말한 일에 ( )도 없고 ( )도 없으면 이는 여호와께서 말씀하신 것이 아니요 선지자가 제 마음대로 한 말이니 너는 그를 두려워하지 말지니라" (신 18)',
+   answer:"증험 / 성취함"},
+
+  {id:"deu-035", book:"신명기", chapter:19, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네 하나님 여호와께서 네게 주어 차지하게 하시는 땅 곧 네 소유가 된 기업의 땅에서 조상이 정한 네 이웃의 ( )를 옮기지 말지니라" (신 19)',
+   answer:"경계표"},
+
+  {id:"deu-036", book:"신명기", chapter:19, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"사람의 모든 악과 모든 죄는 ... ( ) 증인의 입으로나 또는 ( ) 증인의 입으로 그 사건을 확정할 것이며" (신 19)',
+   answer:"두 / 세"},
+
+  {id:"deu-037", book:"신명기", chapter:20, type:"multiple",
+   question:"적군과 싸우러 할 때에 집으로 돌아가야 할 자가 아닌 사람은 누구입니까? (신 20)",
+   options:["새 집을 건축하고 낙성식을 행하지 못한 자","포도원을 만들고 그 과실을 먹지 못한 자","여자와 약혼하고 그와 결혼하지 못한 자","전쟁 경험이 없는 자"],
+   answer:3},
+
+  {id:"deu-038", book:"신명기", chapter:20, type:"multiple",
+   question:"하나님은 이스라엘 백성에게 어떤 성읍을 치려고 할 때 먼저 그 성읍에 대해 어떤 행동을 취하라고 하셨습니까? (신 20)",
+   options:["화평을 선언함","선전포고를 함","정탐꾼을 보냄","유아나 여자를 도피케 함"],
+   answer:0},
+
+  {id:"deu-039", book:"신명기", chapter:21, type:"multiple",
+   question:"다음은 여러 가지 규정에 관한 내용입니다. 옳지 못한 것은 무엇입니까? (신 21)",
+   options:["무지한 자의 죄를 출신 피로 이스라엘 중에서 제해야 한다","미움 받는 여자의 아들이 장자라면 그에게 기업의 두 몫을 주어야 한다","매약한 아들이 있으면 성문에 이르러 성읍 장로들에게 말하고 성읍의 모든 사람이 그를 돌로 쳐 죽여야 한다","죽을 죄를 범한 사람은 죽여서, 본보기가 되도록 사흘간 나무 위에 달아놓는다"],
+   answer:3},
+
+  {id:"deu-040", book:"신명기", chapter:22, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"여자는 남자의 ( )을 입지 말 것이요 남자는 여자의 ( )을 입지 말 것이라 이같이 하는 자는 네 하나님 여호와께 ( )가 됨이니라" (신 22)',
+   answer:"의복 / 의복 / 가증한"},
+
+  {id:"deu-041", book:"신명기", chapter:22, type:"multiple",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?\n\"만일 남자가 약혼하지 아니한 처녀를 만나 그를 붙들고 동침하는 중에 그 사람이 발견되면 그 동침한 남자는 그 처녀의 아버지에게 ( )을 주고 그가 그 처녀를 욕보였은즉 평생에 그를 버리지 못하리라\" (신 22)",
+   options:["은 30세겔","은 40세겔","은 45세겔","은 50세겔"],
+   answer:3},
+
+  {id:"deu-042", book:"신명기", chapter:23, type:"multiple",
+   question:"다음 중 총회에 들어올 수 있는 사람은 누구입니까? (신 23)",
+   options:["고환이 상한 자","사생자","암몬 사람의 십 대 후 자손","에돔 사람의 십 대 후 자손"],
+   answer:3},
+
+  {id:"deu-043", book:"신명기", chapter:23, type:"multiple",
+   question:"다음 중 옳지 못한 것은 무엇입니까? (신 23)",
+   options:["이스라엘 여자 중 창기가 있어서는 안 된다","창기가 번 돈은 서원하는 일에 사용해도 된다","형제에게 꾸어주면 이자를 받지 말아야 한다","타국인에게 꾸어주면 이자를 받아도 된다"],
+   answer:1},
+
+  {id:"deu-044", book:"신명기", chapter:24, type:"fill",
+   question:"다음 ( ) 안에 공통으로 들어갈 하나의 단어는 무엇입니까?",
+   body:'"네가 형제에게 꾸어주거든 ( ), 식물의 ( ), 받을 만한 모든 것의 ( )를 받지 말 것이라" (신 23)',
+   answer:"이자(이식)"},
+
+  {id:"deu-045", book:"신명기", chapter:24, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네가 밭에서 곡식을 벨 때에 그 한 뭇을 밭에 잊어버렸거든 다시 가서 가져오지 말고 ( )와 ( )와 ( )를 위하여 남겨두라 그리하면 네 하나님 여호와께서 네 손으로 하는 모든 일에 복을 내리시리라" (신 24)',
+   answer:"객 / 고아 / 과부"},
+
+  {id:"deu-046", book:"신명기", chapter:25, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"그의 부모를 경홀히 여기는 자는 ( )를 받을 것이요 모든 백성은 아멘 할지니라" (신 27)',
+   answer:"저주"},
+
+  {id:"deu-047", book:"신명기", chapter:28, type:"fill",
+   question:"다음은 하나님의 말씀에 순종할 때의 복입니다. ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"네가 ( )에서도 복을 받고 ( )에서도 복을 받을 것이며 네 몸의 ( )와 네 토지의 ( )와 네 짐승의 새끼와 소와 양의 새끼가 복을 받을 것이며 네 광주리와 떡 반죽 그릇이 복을 받을 것이라" (신 28)',
+   answer:"성읍 / 들 / 자녀 / 소산"},
+
+  {id:"deu-048", book:"신명기", chapter:28, type:"fill",
+   question:"다음은 하나님의 말씀에 불순종할 때 받는 저주입니다. ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"여호와께서 너의 위의 하늘은 ( )이 되게 하시고 너의 아래의 땅은 ( )이 될 것이며 비 대신에 ( )와 ( )를 네 땅에 내리시되 그것들이 하늘에서 네 위에 내려 마침내 너를 멸하리라" (신 28)',
+   answer:"놋 / 철 / 티끌 / 모래"},
+
+  {id:"deu-049", book:"신명기", chapter:30, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"오직 그 말씀이 네게 매우 가까워서 네 ( )에 있으며 네 ( )에 있은즉 네가 이를 행할 수 있느니라" (신 30)',
+   answer:"입 / 마음"},
+
+  {id:"deu-050", book:"신명기", chapter:30, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"보라 내가 오늘 ( )과 복과 ( )과 화를 네 앞에 두었나니 곧 내가 오늘 네게 명령하여 네 하나님 여호와를 ( )하고 그 모든 길로 행하며 그의 명령과 ( )와 법도를 지키라 그리하면 네가 ( )하고 번성할 것이요 또 네 하나님 여호와께서 네가 가서 차지할 땅에서 네게 ( )을 주실 것임이니라" (신 30)',
+   answer:"생명 / 사망 / 사랑 / 규례 / 청종 / 복"},
+
+  {id:"deu-051", book:"신명기", chapter:30, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내가 오늘 하늘과 땅을 불러서 너희에게 ( )를 삼노라 내가 생명과 ( )와 복과 ( )를 네 앞에 두었은즉 너와 네 자손이 살기 위하여 ( )을 택하고 네 하나님 여호와를 ( )하고 그의 말씀을 ( )하며 또 그를 의지하라 그리하면 네 ( )가 길리니" (신 30)',
+   answer:"증거 / 사망 / 저주 / 생명 / 사랑 / 청종 / 장수"},
+
+  {id:"deu-052", book:"신명기", chapter:31, type:"multiple",
+   question:"여호와의 면제년은 언제입니까? (신 31)",
+   options:["매 3년 끝 해","매 4년 끝 해","매 7년 끝 해","매 12년 끝 해"],
+   answer:2},
+
+  {id:"deu-053", book:"신명기", chapter:31, type:"multiple",
+   question:"모세는 율법을 기록한 후에 어디에 두라고 하였습니까? (신 31)",
+   options:["언약궤 곁에","분향단 옆에","속죄소 위에","지성소 위에"],
+   answer:0},
+
+  {id:"deu-054", book:"신명기", chapter:32, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"내 교훈은 ( )처럼 내리고 내 말은 ( )처럼 맺히나니 연한 풀 위의 가는 ( ) 같고 채소 위의 ( ) 같도다" (신 32)',
+   answer:"비 / 이슬 / 비 / 단비"},
+
+  {id:"deu-055", book:"신명기", chapter:32, type:"multiple",
+   question:"다음 중 모세에게 가나안 입성이 허락되지 않은 이유와 연관이 있는 사건은 무엇입니까? (신 32)",
+   options:["고라의 반역","다베라에서의 사건","기브롯 핫다아와에서의 사건","므리바 물 사건"],
+   answer:3},
+
+  {id:"deu-056", book:"신명기", chapter:33, type:"multiple",
+   question:"모세가 죽기 전에 마지막으로 한 일은 무엇입니까? (신 33)",
+   options:["이스라엘 자손에게 율법을 낭독함","이스라엘 자손을 위하여 기도함","이스라엘 자손을 축복함","이스라엘 자손을 위하여 제사 드림"],
+   answer:2},
+
+  {id:"deu-057", book:"신명기", chapter:33, type:"multiple",
+   question:'다음은 누구에 대한 축복의 발음입니까?\n"주의 법도를 야곱에게, 주의 율법을 이스라엘에게 가르치며 주 앞에 분향하고 온전한 번제를 주의 제단 위에 드리리로다" (신 33)',
+   options:["유다","레위","베냐민","요셉"],
+   answer:1},
+
+  {id:"deu-058", book:"신명기", chapter:33, type:"multiple",
+   question:"다음 ( ) 안에 공통으로 들어갈 말은 무엇입니까?\n\"( )에 대한 축복은 이러하니라 여호와여 ( )의 음성을 들으시고 그의 백성에게로 인도하시며 그의 손으로 자기를 위하여 싸우게 하시고 주께서 도우사 그가 그 대적을 치게 하시기를 원하나이다\" (신 33)",
+   options:["유다","레위","베냐민","요셉"],
+   answer:0},
+
+  {id:"deu-059", book:"신명기", chapter:33, type:"multiple",
+   question:'다음은 누구에 대한 축복의 말씀입니까?\n"여호와의 사랑을 입은 자는 그 곁에 안전히 살리로다 여호와께서 그를 날이 마치도록 보호하시고 그를 자기 사이에 두시도록 하시리로다" (신 33)',
+   options:["유다","레위","베냐민","요셉"],
+   answer:2},
+
+  {id:"deu-060", book:"신명기", chapter:34, type:"multiple",
+   question:"모세는 몇 세에 죽었습니까? (신 34)",
+   options:["100세","110세","120세","130세"],
+   answer:2},
+
+  {id:"deu-061", book:"신명기", chapter:34, type:"multiple",
+   question:"모세의 죽음에 관한 설명으로 옳지 않은 것은 무엇입니까? (신 34)",
+   options:["죽을 때에 나이는 120세였다","모압 땅에 있는 골짜기에 장사 되었으나 오늘까지 그의 묻힌 곳을 아는 자가 없다","그가 죽을 때 눈이 흐리지 않았고 기력이 쇠하지 않았다","아론과 함께 죽었다"],
+   answer:3},
+
+  {id:"deu-062", book:"신명기", chapter:32, type:"fill",
+   question:"다음 ( ) 안에 들어갈 말은 무엇입니까?",
+   body:'"그는 ( )이시니 그가 하시는 일이 완전하고 그의 모든 길이 정의롭고 진실하고 거짓이 없으신 하나님이시니 ( )도 없으시도다" (신 32)',
+   answer:"반석 / 불의"},
 
   {id:"verse-001", book:"시편", chapter:1, type:"verse",
    question:"시편 1편 1절을 암송하세요",
@@ -502,7 +1924,11 @@ let state = {
   progress: {},     // {qId: {nextSession, lastSession, totalReviews, lapses, isNew, lastGrade}}
   sessionCount: 0,  // 누적 테스트 횟수
   user: null,       // {uid, name, email}
-  category: "all"   // "all" | "question" | "verse"
+  view: "home",     // "home" | "study" | "verseMode" | "bookSelect" | "chapterSelect" | "settings"
+  category: "question", // "question" | "verse"
+  verseMode: "test",    // "test" (첫글자) | "blank" (빈칸)
+  bookFilter: null,     // null이면 책 무관 / "창세기" 등
+  chapterFilter: null   // null이면 전체 장 / 숫자
 };
 let settings = {
   newPerDay: 5,
@@ -565,11 +1991,14 @@ function applyGrade(prog, quality) {
 // 큐 빌딩
 // ===========================
 function filterByCategory(q) {
-  if (state.category === "all") return true;
-  if (state.category === "verse") return q.type === "verse";
-  if (state.category === "question") return q.type !== "verse";
+  if (state.category === "verse" && q.type !== "verse") return false;
+  if (state.category === "question" && q.type === "verse") return false;
+  if (state.bookFilter && q.book !== state.bookFilter) return false;
+  if (state.chapterFilter !== null && q.chapter !== state.chapterFilter) return false;
   return true;
 }
+
+const BOOK_BATCH_SIZE = 15;
 
 function buildQueue() {
   // 새 세션 시작: 카운터 증가
@@ -578,6 +2007,7 @@ function buildQueue() {
 
   const dueCards = [];
   const newCards = [];
+  const otherCards = [];
 
   QUESTIONS.filter(filterByCategory).forEach(q => {
     const p = state.progress[q.id];
@@ -585,16 +2015,31 @@ function buildQueue() {
       newCards.push(q);
     } else if (p.nextSession <= state.sessionCount) {
       dueCards.push({q, p});
+    } else {
+      otherCards.push({q, p});
     }
   });
 
-  // 정렬: 가장 오래 지난 것(nextSession이 작은 것) 우선
+  // 책 별 풀기 모드: 15문제씩 (PDF 원본 순서대로, 안 본 것 우선)
+  if (state.bookFilter) {
+    newCards.sort((a, b) => a.id.localeCompare(b.id));
+    dueCards.sort((a, b) => a.q.id.localeCompare(b.q.id));
+    otherCards.sort((a, b) => {
+      // nextSession 가까운 것 우선
+      const diff = a.p.nextSession - b.p.nextSession;
+      if (diff !== 0) return diff;
+      return a.q.id.localeCompare(b.q.id);
+    });
+    const ordered = [...newCards, ...dueCards.map(x => x.q), ...otherCards.map(x => x.q)];
+    saveProgress();
+    return ordered.slice(0, BOOK_BATCH_SIZE);
+  }
+
+  // 일반 모드: SM-2 우선
   dueCards.sort((a, b) => a.p.nextSession - b.p.nextSession);
   const dueLimited = dueCards.slice(0, settings.reviewMax).map(x => x.q);
-
   shuffle(newCards);
   const newLimited = newCards.slice(0, settings.newPerDay);
-
   saveProgress();
   return interleave(dueLimited, newLimited);
 }
@@ -622,59 +2067,202 @@ function interleave(reviews, news) {
 }
 
 // ===========================
-// 화면 렌더링
+// 라우터 (화면 전환)
 // ===========================
-function renderCategoryBar() {
-  const labels = {all: "전체", question: "성경 문제", verse: "성경 암송"};
-  return `<div style="display:flex; gap:6px; margin-bottom:12px;">
-    ${["all","question","verse"].map(c => `
-      <button onclick="setCategory('${c}')" class="${state.category===c?'cat-active':''}" style="
-        flex:1; padding:8px 4px; font-size:13px; border-radius:6px;
-        border:1px solid ${state.category===c?'var(--primary)':'var(--border)'};
-        background:${state.category===c?'var(--primary)':'white'};
-        color:${state.category===c?'white':'var(--text)'};
-        font-family:inherit; cursor:pointer; font-weight:${state.category===c?'500':'400'};
-      ">${labels[c]}</button>
-    `).join('')}
-  </div>`;
+function navTo(view, options = {}) {
+  state.view = view;
+  if (options.category !== undefined) state.category = options.category;
+  if (options.verseMode !== undefined) state.verseMode = options.verseMode;
+  if (options.book !== undefined) state.bookFilter = options.book;
+  if (options.chapter !== undefined) state.chapterFilter = options.chapter;
+
+  if (view === "home") renderHome();
+  else if (view === "verseMode") renderVerseModeSelect();
+  else if (view === "bookSelect") renderBookSelect();
+  else if (view === "chapterSelect") renderChapterSelect();
+  else if (view === "study") {
+    currentQueue = [];
+    currentIdx = 0;
+    renderStudy();
+  }
+  else if (view === "settings") renderSettings();
 }
 
-function setCategory(c) {
-  if (state.category === c) return;
-  state.category = c;
-  saveProgress();
-  // 진행 중이던 큐는 폐기 - 다음 buildQueue에서 새 세션 시작
-  // 하지만 카테고리 바꾸는 건 별도 행위니까 sessionCount 증가는 막아야 함
-  // 트릭: sessionCount를 1 빼서 다음 buildQueue가 다시 같은 세션 번호로 만들도록
-  state.sessionCount -= 1;
-  currentQueue = [];
-  currentIdx = 0;
-  renderStudy();
+function backBtn(target) {
+  return `<button class="back-btn" onclick="navTo('${target}')">← 뒤로</button>`;
+}
+
+// ===========================
+// 홈 화면
+// ===========================
+function renderHome() {
+  const totalQ = QUESTIONS.filter(q => q.type !== "verse").length;
+  const totalV = QUESTIONS.filter(q => q.type === "verse").length;
+  document.getElementById('viewArea').innerHTML = `
+    <div style="padding:8px 4px 14px; color:var(--text-light); font-size:13px;">
+      누적 테스트: ${state.sessionCount}회
+    </div>
+
+    <div class="card menu-card" onclick="navTo('study', {category:'question', book:null, chapter:null})">
+      <div class="menu-icon">📖</div>
+      <div class="menu-text">
+        <div class="menu-title">성경문제</div>
+        <div class="menu-desc">객관식·빈칸·주관식 · 총 ${totalQ}문제</div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </div>
+
+    <div class="card menu-card" onclick="navTo('verseMode')">
+      <div class="menu-icon">🙏</div>
+      <div class="menu-text">
+        <div class="menu-title">성경암송</div>
+        <div class="menu-desc">Test 또는 빈칸연습 · 총 ${totalV}구절</div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </div>
+
+    <div class="card menu-card" onclick="navTo('bookSelect')">
+      <div class="menu-icon">📚</div>
+      <div class="menu-text">
+        <div class="menu-title">성경 별 문제 풀기</div>
+        <div class="menu-desc">한 책의 한 장 문제만 몰아서 풀기</div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </div>
+  `;
+}
+
+// ===========================
+// 성경암송 유형 선택
+// ===========================
+function renderVerseModeSelect() {
+  document.getElementById('viewArea').innerHTML = backBtn('home') + `
+    <h2 style="margin-bottom:14px;">성경암송 유형 선택</h2>
+    <div class="card menu-card" onclick="navTo('study', {category:'verse', verseMode:'test', book:null, chapter:null})">
+      <div class="menu-icon">🅰️</div>
+      <div class="menu-text">
+        <div class="menu-title">Test</div>
+        <div class="menu-desc">구절의 첫 글자 하나만 보고 전체를 떠올려요</div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="card menu-card" onclick="navTo('study', {category:'verse', verseMode:'blank', book:null, chapter:null})">
+      <div class="menu-icon">✏️</div>
+      <div class="menu-text">
+        <div class="menu-title">빈칸연습</div>
+        <div class="menu-desc">일부 단어를 빈칸으로 두고 채워가며 외우기</div>
+      </div>
+      <div class="menu-arrow">›</div>
+    </div>
+  `;
+}
+
+// ===========================
+// 책 / 장 선택
+// ===========================
+function renderBookSelect() {
+  const byBook = {};
+  QUESTIONS.forEach(q => {
+    if (q.type === "verse") return; // 암송은 별도 메뉴
+    if (!byBook[q.book]) byBook[q.book] = 0;
+    byBook[q.book] += 1;
+  });
+  // 성경 순서 유지하려고 QUESTIONS 등장 순서대로
+  const seen = new Set();
+  const ordered = [];
+  QUESTIONS.forEach(q => {
+    if (q.type === "verse") return;
+    if (!seen.has(q.book)) { seen.add(q.book); ordered.push(q.book); }
+  });
+
+  let html = backBtn('home') + '<h2 style="margin-bottom:6px;">책을 선택하세요</h2>';
+  html += '<p style="font-size:13px; color:var(--text-light); margin-bottom:14px;">선택한 책에서 15문제씩 몰아 풀어요.</p>';
+  html += '<div class="book-grid">';
+  ordered.forEach(book => {
+    const seen = QUESTIONS.filter(q => q.book === book && q.type !== "verse" && state.progress[q.id] && !state.progress[q.id].isNew).length;
+    html += `<div class="book-card" onclick="navTo('study', {category:'question', book:'${book}', chapter:null})">
+      <div class="book-card-name">${book}</div>
+      <div class="book-card-meta">${seen} / ${byBook[book]} 학습</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('viewArea').innerHTML = html;
+}
+
+function renderChapterSelect() {
+  const book = state.bookFilter;
+  const byChapter = {};
+  QUESTIONS.forEach(q => {
+    if (q.book !== book) return;
+    if (q.type === "verse") return;
+    if (!byChapter[q.chapter]) byChapter[q.chapter] = 0;
+    byChapter[q.chapter] += 1;
+  });
+  const chapters = Object.keys(byChapter).map(Number).sort((a,b) => a-b);
+
+  let html = backBtn('bookSelect') + `<h2 style="margin-bottom:14px;">${book} - 장 선택</h2>`;
+  html += '<div class="chapter-grid">';
+  html += `<div class="chapter-card all" onclick="navTo('study', {category:'question', book:'${book}', chapter:null})">
+    <div class="chapter-card-num">전체</div>
+    <div class="chapter-card-count">총 ${Object.values(byChapter).reduce((s,x)=>s+x,0)}문제</div>
+  </div>`;
+  chapters.forEach(ch => {
+    html += `<div class="chapter-card" onclick="navTo('study', {category:'question', book:'${book}', chapter:${ch}})">
+      <div class="chapter-card-num">${ch}장</div>
+      <div class="chapter-card-count">${byChapter[ch]}문제</div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('viewArea').innerHTML = html;
+}
+
+// ===========================
+// 학습 화면
+// ===========================
+function studyTitle() {
+  if (state.category === "verse") {
+    return `성경암송 - ${state.verseMode === "test" ? "Test" : "빈칸연습"}`;
+  }
+  if (state.bookFilter) {
+    return `${state.bookFilter} - ${BOOK_BATCH_SIZE}문제 풀기`;
+  }
+  return "성경 문제";
+}
+
+function studyBackTarget() {
+  if (state.category === "verse") return "verseMode";
+  if (state.bookFilter) return "bookSelect";
+  return "home";
 }
 
 function renderStudy() {
-  const view = document.getElementById('studyView');
-  const catBar = renderCategoryBar();
+  const view = document.getElementById('viewArea');
 
   if (currentQueue.length === 0) {
     currentQueue = buildQueue();
     currentIdx = 0;
   }
   if (currentIdx >= currentQueue.length || currentQueue.length === 0) {
-    const catLabel = {all:"", question:"성경 문제", verse:"성경 암송"}[state.category];
-    view.innerHTML = catBar + `
+    const isBookMode = !!state.bookFilter;
+    const nextBtnLabel = isBookMode ? `다음 ${BOOK_BATCH_SIZE}문제 풀기` : "새 문제 더 풀기";
+    const endMsg = isBookMode
+      ? `15문제 끝났어요. 잘 하셨어요!`
+      : `잘 하셨어요. 다음 테스트에 또 만나요.`;
+    view.innerHTML = backBtn(studyBackTarget()) + `
+      <div style="font-size:13px; color:var(--text-light); margin-bottom:8px;">${studyTitle()}</div>
       <div class="empty">
         <div class="empty-icon">🎉</div>
-        <h2 style="margin-bottom: 8px;">${catLabel ? catLabel + ' ' : ''}오늘 공부 끝!</h2>
-        <p>잘 하셨어요. 다음 테스트에 또 만나요.</p>
+        <h2 style="margin-bottom: 8px;">한 세트 끝!</h2>
+        <p>${endMsg}</p>
         <p style="font-size:12px; color:var(--text-light); margin-top:8px;">누적 테스트: ${state.sessionCount}회</p>
-        <button class="btn" style="margin-top: 20px;" onclick="refreshQueue()">새 문제 더 풀기</button>
+        <button class="btn" style="margin-top: 20px;" onclick="refreshQueue()">${nextBtnLabel}</button>
+        <button class="btn btn-secondary btn-block" style="margin-top: 8px;" onclick="navTo('home')">메뉴로</button>
       </div>`;
     return;
   }
   currentCard = currentQueue[currentIdx];
   revealed = false;
-  renderCard(catBar);
+  renderCard();
 }
 
 function refreshQueue() {
@@ -687,47 +2275,76 @@ function refreshQueue() {
   renderStudy();
 }
 
-function renderCard(catBar) {
+// 첫 글자 힌트 (Test 모드) - 구절의 첫 글자 한 개만
+function makeFirstCharHint(text) {
+  const trimmed = (text || '').trim();
+  return trimmed.length > 0 ? trimmed[0] : '';
+}
+// 빈칸 처리 (빈칸연습 모드) - 3 어절 중 1개 정도를 빈칸 처리
+function makeBlankVerse(text) {
+  const words = text.split(/\s+/).filter(w => w.length > 0);
+  return words.map((w, i) => {
+    if ((i % 3 === 2) && w.length >= 2) {
+      return `<span class="blank">${escapeHtml(w)}</span>`;
+    }
+    return escapeHtml(w);
+  }).join(' ');
+}
+
+function renderCard() {
   const q = currentCard;
-  const view = document.getElementById('studyView');
+  const view = document.getElementById('viewArea');
   const typeLabel = {
     "multiple": "객관식",
     "fill": "빈칸 채우기",
     "short": "주관식",
-    "verse": "암송"
+    "verse": state.verseMode === "test" ? "암송 · Test" : "암송 · 빈칸연습"
   }[q.type] || "문제";
 
   const total = currentQueue.length;
   const cur = currentIdx + 1;
   const progress = Math.round(((cur-1) / total) * 100);
 
-  let cardHTML = (catBar || renderCategoryBar()) + `
+  let cardHTML = backBtn(studyBackTarget()) + `
+    <div style="font-size:13px; color:var(--text-light); margin-bottom:8px;">${studyTitle()}</div>
     <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
     <div class="card">
       <div class="q-meta">
         <span class="q-tag">${typeLabel}</span>
         <span>${cur} / ${total} · ${q.book} ${q.chapter ? q.chapter+'장' : ''}</span>
       </div>
-      <div class="q-text">${escapeHtml(q.question)}</div>
   `;
 
-  if (q.body) {
-    cardHTML += `<div class="q-body">${escapeHtml(q.body)}</div>`;
-  }
-
-  if (q.type === "multiple") {
-    cardHTML += '<div id="optionsBox">';
-    q.options.forEach((opt, i) => {
-      const mark = ['①','②','③','④','⑤'][i] || (i+1)+'.';
-      cardHTML += `<div class="option" data-idx="${i}" onclick="selectOption(${i})">${mark} ${escapeHtml(opt)}</div>`;
-    });
-    cardHTML += '</div>';
-    cardHTML += `<button id="checkBtn" class="btn btn-block" style="margin-top:12px;" onclick="checkMultiple()" disabled>정답 확인</button>`;
+  if (q.type === "verse") {
+    // 암송 모드 분기
+    cardHTML += `<div class="q-text"><b>${escapeHtml(q.reference || q.book)}</b></div>`;
+    if (state.verseMode === "test") {
+      cardHTML += `<div style="font-size:13px; color:var(--text-light); margin-bottom:8px;">구절의 첫 글자만 힌트예요. 위 본문을 보며 구절을 떠올려보세요.</div>`;
+      cardHTML += `<div class="verse-hint">${escapeHtml(makeFirstCharHint(q.answer))}</div>`;
+    } else {
+      cardHTML += `<div style="font-size:13px; color:var(--text-light); margin-bottom:8px;">빈칸을 마음 속으로 채워가며 외워보세요.</div>`;
+      cardHTML += `<div class="verse-blank">${makeBlankVerse(q.answer)}</div>`;
+    }
+    cardHTML += `<button class="btn btn-block" style="margin-top:12px;" onclick="revealAnswer()">정답 보기</button>`;
   } else {
-    cardHTML += `
-      <textarea id="userAnswer" placeholder="답을 적어보세요 (선택 사항 - 머릿속으로 떠올린 뒤 정답 보기를 눌러도 돼요)"></textarea>
-      <button class="btn btn-block" style="margin-top:12px;" onclick="revealAnswer()">정답 보기</button>
-    `;
+    cardHTML += `<div class="q-text">${escapeHtml(q.question)}</div>`;
+    if (q.body) {
+      cardHTML += `<div class="q-body">${escapeHtml(q.body)}</div>`;
+    }
+    if (q.type === "multiple") {
+      cardHTML += '<div id="optionsBox">';
+      q.options.forEach((opt, i) => {
+        const mark = ['①','②','③','④','⑤'][i] || (i+1)+'.';
+        cardHTML += `<div class="option" data-idx="${i}" onclick="selectOption(${i})">${mark} ${escapeHtml(opt)}</div>`;
+      });
+      cardHTML += '</div>';
+      cardHTML += `<button id="checkBtn" class="btn btn-block" style="margin-top:12px;" onclick="checkMultiple()" disabled>정답 확인</button>`;
+    } else {
+      cardHTML += `
+        <textarea id="userAnswer" placeholder="답을 적어보세요 (선택 사항 - 머릿속으로 떠올린 뒤 정답 보기를 눌러도 돼요)"></textarea>
+        <button class="btn btn-block" style="margin-top:12px;" onclick="revealAnswer()">정답 보기</button>
+      `;
+    }
   }
 
   cardHTML += `<div id="answerArea"></div></div>`;
@@ -796,110 +2413,75 @@ function grade(quality) {
 }
 
 // ===========================
-// 다른 탭들
+// 설정 화면
 // ===========================
-function renderBrowse() {
-  const view = document.getElementById('browseView');
-  const byBook = {};
-  QUESTIONS.forEach(q => {
-    if (!byBook[q.book]) byBook[q.book] = [];
-    byBook[q.book].push(q);
-  });
-  let html = '<div class="card"><h2 style="margin-bottom: 12px;">책별 문제</h2><div class="book-list">';
-  Object.entries(byBook).forEach(([book, qs]) => {
-    const done = qs.filter(q => state.progress[q.id] && !state.progress[q.id].isNew).length;
-    html += `<div class="book-item">
-      <div style="font-weight:500;">${book}</div>
-      <div class="book-count">${done} / ${qs.length} 학습 시작</div>
-    </div>`;
-  });
-  html += '</div></div>';
-  view.innerHTML = html;
-}
+function renderSettings() {
+  const authHtml = state.user
+    ? `<p>로그인됨: <b>${state.user.name || state.user.email}</b></p>
+       <p style="font-size: 13px; color: var(--text-light); margin-top: 6px;">진도가 자동으로 클라우드에 동기화됩니다.</p>
+       <button class="btn btn-secondary" style="margin-top: 12px;" onclick="signOut()">로그아웃</button>`
+    : `<p style="margin-bottom: 12px;">현재 진도는 이 기기에만 저장되고 있어요.</p>
+       <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">구글 로그인하면 폰과 PC에서 진도를 자동 동기화할 수 있어요.</p>
+       <button class="btn" onclick="signIn()">🔐 구글로 로그인 (Firebase 설정 후 활성화)</button>
+       <p style="font-size: 12px; color: var(--text-light); margin-top: 14px;">※ 이 프로토타입은 아직 Firebase 설정 전이에요.</p>`;
 
-function renderStats() {
-  const view = document.getElementById('statsView');
-  const total = QUESTIONS.length;
-  const totalQ = QUESTIONS.filter(q => q.type !== "verse").length;
-  const totalV = QUESTIONS.filter(q => q.type === "verse").length;
-  const started = Object.keys(state.progress).length;
-  const due = QUESTIONS.filter(q => {
-    const p = state.progress[q.id];
-    return p && p.nextSession <= state.sessionCount;
-  }).length;
-  const newCount = QUESTIONS.filter(q => !state.progress[q.id]).length;
+  document.getElementById('viewArea').innerHTML = backBtn('home') + `
+    <h2 style="margin-bottom:14px;">설정</h2>
 
-  const progs = Object.values(state.progress);
-  const totalLapses = progs.reduce((s, p) => s + (p.lapses || 0), 0);
-  const totalReviews = progs.reduce((s, p) => s + (p.totalReviews || 0), 0);
-  const mastered = progs.filter(p => (p.consecutiveEasy || 0) >= 2).length;
-
-  // 자주 틀리는 문제 Top 5
-  const lapses = QUESTIONS
-    .map(q => ({q, lapses: (state.progress[q.id]?.lapses || 0)}))
-    .filter(x => x.lapses > 0)
-    .sort((a, b) => b.lapses - a.lapses)
-    .slice(0, 5);
-
-  let html = `
-    <div class="stat-grid">
-      <div class="stat-box"><div class="stat-num">${state.sessionCount}</div><div class="stat-label">누적 테스트</div></div>
-      <div class="stat-box"><div class="stat-num">${due}</div><div class="stat-label">지금 복습 대기</div></div>
-      <div class="stat-box"><div class="stat-num">${started}/${total}</div><div class="stat-label">학습 시작</div></div>
-    </div>
     <div class="card">
-      <h2 style="margin-bottom:10px;">학습 현황</h2>
-      <p style="margin-bottom: 6px;">전체 문제: <b>${total}개</b> (성경 문제 ${totalQ}, 암송 ${totalV})</p>
-      <p style="margin-bottom: 6px;">아직 안 본 문제: <b>${newCount}개</b></p>
-      <p style="margin-bottom: 6px;">총 풀이 횟수: <b>${totalReviews}회</b></p>
-      <p style="margin-bottom: 6px;">총 틀린 횟수: <b>${totalLapses}회</b></p>
-      <p>익숙해진 문제(쉬움 2회 연속+): <b>${mastered}개</b></p>
+      <h3 style="margin-bottom: 12px;">계정</h3>
+      ${authHtml}
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">학습 설정</h3>
+      <label style="display:block; margin-bottom: 10px;">
+        한 테스트의 새 문제 수
+        <input type="number" id="newPerDay" min="1" max="50" value="${settings.newPerDay}" style="width:80px; padding:6px;">
+      </label>
+      <label style="display:block;">
+        한 테스트의 복습 한도 (최대)
+        <input type="number" id="reviewMax" min="5" max="200" value="${settings.reviewMax}" style="width:80px; padding:6px;">
+      </label>
+      <button class="btn btn-secondary" style="margin-top: 12px;" onclick="saveSettings()">저장</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">매일 알림</h3>
+      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">
+        매일 정해진 시간에 공부 알림을 받을 수 있어요.
+      </p>
+      <label style="display:block; margin-bottom: 12px;">
+        알림 시간:
+        <input type="time" id="reminderTime" value="${settings.reminderTime || ''}" style="margin-left:8px; padding:6px; font-size:14px;">
+      </label>
+      <button class="btn" onclick="saveReminderTime()">알림 켜기 / 저장</button>
+      <button class="btn btn-secondary" onclick="disableReminder()" style="margin-left:6px;">알림 끄기</button>
+      <div id="notifStatus" style="font-size:13px; margin-top:12px; color: var(--text-light);"></div>
+      <hr style="margin: 18px 0; border:0; border-top:1px solid var(--border);">
+      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 10px;">
+        앱이 닫혀있을 때도 알림을 받으려면 휴대폰 캘린더에 매일 반복 일정으로 등록하는 게 가장 확실해요.
+      </p>
+      <button class="btn btn-secondary btn-block" onclick="downloadICS()">📅 캘린더에 매일 반복 일정 추가 (.ics 다운로드)</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom: 12px;">데이터</h3>
+      <button class="btn btn-secondary btn-block" onclick="exportData()">내 진도 내보내기 (JSON)</button>
+      <button class="btn btn-secondary btn-block" onclick="document.getElementById('importFile').click()">진도 가져오기</button>
+      <button class="btn btn-secondary btn-block" onclick="resetProgress()" style="color: var(--error); border-color: var(--error);">진도 초기화</button>
     </div>
   `;
-
-  if (lapses.length > 0) {
-    html += '<div class="card"><h2 style="margin-bottom:10px;">자주 틀리는 문제</h2>';
-    lapses.forEach(({q, lapses}) => {
-      html += `<div style="padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px;">
-        <div style="color: var(--text-light); font-size: 12px;">${q.book} ${q.chapter}장 · ${lapses}회 틀림</div>
-        <div>${escapeHtml(q.question.substring(0, 80))}${q.question.length > 80 ? '...' : ''}</div>
-      </div>`;
-    });
-    html += '</div>';
-  }
-
-  view.innerHTML = html;
-}
-
-function renderAuth() {
-  const view = document.getElementById('authView');
-  if (state.user) {
-    view.innerHTML = `
-      <p>로그인됨: <b>${state.user.name || state.user.email}</b></p>
-      <p style="font-size: 13px; color: var(--text-light); margin-top: 6px;">진도가 자동으로 클라우드에 동기화됩니다.</p>
-      <button class="btn btn-secondary" style="margin-top: 12px;" onclick="signOut()">로그아웃</button>
-    `;
-  } else {
-    view.innerHTML = `
-      <p style="margin-bottom: 12px;">현재 진도는 이 기기에만 저장되고 있어요.</p>
-      <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">구글 로그인하면 폰과 PC에서 진도를 자동 동기화할 수 있어요.</p>
-      <button class="btn" onclick="signIn()" id="googleSignInBtn">
-        🔐 구글로 로그인 (Firebase 설정 후 활성화)
-      </button>
-      <p style="font-size: 12px; color: var(--text-light); margin-top: 14px;">
-        ※ 이 프로토타입은 아직 Firebase 설정 전이에요. 다음 단계에서 활성화됩니다.
-      </p>
-    `;
-  }
+  updateNotifStatus();
 }
 
 function signIn() {
-  showToast("Firebase 설정이 필요해요. 다음 단계에서 안내드릴게요.");
+  showToast("Firebase 설정이 필요해요.");
 }
 function signOut() {
   state.user = null;
-  renderAuth();
-  document.getElementById('userInfo').textContent = '로그아웃 상태';
+  document.getElementById('userInfo').textContent = '로그아웃';
+  if (state.view === 'settings') renderSettings();
 }
 
 // ===========================
@@ -923,7 +2505,7 @@ function loadProgress() {
       const data = JSON.parse(raw);
       state.progress = data.progress || {};
       state.sessionCount = data.sessionCount || 0;
-      state.category = data.category || "all";
+      // 카테고리는 현재 view 진입 시 결정되므로 저장된 값 무시
     } else {
       // v1(SM-2) → v2 마이그레이션
       const oldRaw = localStorage.getItem(STORAGE_KEY_OLD);
@@ -1121,7 +2703,7 @@ function importData(event) {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       showToast("진도를 가져왔어요");
       currentQueue = [];
-      renderStudy();
+      navTo('home');
     } catch(e) {
       showToast("파일이 올바르지 않아요");
     }
@@ -1131,10 +2713,11 @@ function importData(event) {
 function resetProgress() {
   if (!confirm('정말 모든 진도를 초기화할까요? 되돌릴 수 없어요.')) return;
   state.progress = {};
+  state.sessionCount = 0;
   saveProgress();
   currentQueue = [];
   showToast("초기화 완료");
-  renderStudy();
+  navTo('home');
 }
 
 // ===========================
@@ -1152,33 +2735,14 @@ function showToast(msg) {
 }
 
 // ===========================
-// 탭 전환
-// ===========================
-document.querySelectorAll('nav.tabs button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const tab = btn.dataset.tab;
-    document.querySelectorAll('section[id^="tab-"]').forEach(s => s.classList.add('hidden'));
-    document.getElementById('tab-' + tab).classList.remove('hidden');
-    if (tab === 'study') renderStudy();
-    if (tab === 'browse') renderBrowse();
-    if (tab === 'stats') renderStats();
-    if (tab === 'settings') {
-      renderAuth();
-      document.getElementById('newPerDay').value = settings.newPerDay;
-      document.getElementById('reviewMax').value = settings.reviewMax;
-      document.getElementById('reminderTime').value = settings.reminderTime || "";
-      updateNotifStatus();
-    }
-  });
-});
-
-// ===========================
 // 초기 실행
 // ===========================
 loadProgress();
-renderStudy();
+// 사용자 정보 표시 동기화
+if (state.user) {
+  document.getElementById('userInfo').textContent = state.user.name || state.user.email || '로그인됨';
+}
+navTo('home');
 
 // 저장된 알림 시간이 있으면 다음 알림 예약
 if (settings.notificationEnabled && settings.reminderTime && "Notification" in window
