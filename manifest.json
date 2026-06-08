@@ -1,0 +1,22 @@
+{
+  "name": "성경 문제집 - 매일 공부",
+  "short_name": "성경공부",
+  "description": "매일 조금씩 꾸준히 공부하는 성경 문제집. 자주 틀리는 부분은 더 자주, 잘 외우는 부분은 덜 출제됩니다.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf7",
+  "theme_color": "#4a7c59",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%234a7c59'/><text x='50%25' y='55%25' font-size='110' text-anchor='middle' fill='white' font-family='sans-serif'>📖</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%234a7c59'/><text x='50%25' y='55%25' font-size='300' text-anchor='middle' fill='white' font-family='sans-serif'>📖</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
