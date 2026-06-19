@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#4a7c59">
 <title>성경 문제집 - 매일 공부</title>
 <link rel="manifest" href="manifest.json">
+<!-- Firebase (구글 로그인 + Firestore 동기화). 설정값은 아래 firebaseConfig에 입력 -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --primary: #4a7c59;
@@ -8903,6 +8907,92 @@ const STORAGE_KEY = "bible_workbook_v2";
 const STORAGE_KEY_OLD = "bible_workbook_v1";
 const SETTINGS_KEY = "bible_workbook_settings";
 
+// ===========================
+// Firebase 로그인 + 클라우드 동기화
+// 아래 firebaseConfig 값을 Firebase 콘솔에서 받은 값으로 교체하세요.
+// (설정_가이드_로그인.md 참고. 교체 전에는 로그인 없이 기기 저장으로 동작)
+// ===========================
+const firebaseConfig = {
+  apiKey: "AIzaSyDI_UVyeDktoBDdEqmIdpO93uH_CubM4rs",
+  authDomain: "bible-study-c0d21.firebaseapp.com",
+  projectId: "bible-study-c0d21",
+  storageBucket: "bible-study-c0d21.firebasestorage.app",
+  messagingSenderId: "86562874923",
+  appId: "1:86562874923:web:79cd7df6631d552bd2ec6e"
+};
+let fbAuth = null, fbDb = null, fbReady = false, fbSaveTimer = null;
+function firebaseConfigured() {
+  return !!firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("PASTE") !== 0;
+}
+function initFirebase() {
+  if (!firebaseConfigured() || typeof firebase === "undefined") return;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    fbAuth = firebase.auth();
+    fbDb = firebase.firestore();
+    fbReady = true;
+    fbAuth.onAuthStateChanged(handleAuthChange);
+  } catch (e) {
+    console.error("Firebase 초기화 실패", e);
+  }
+}
+function setUserInfoText(t) {
+  const el = document.getElementById('userInfo');
+  if (el) el.textContent = t;
+}
+async function handleAuthChange(user) {
+  if (user) {
+    state.user = { uid: user.uid, name: user.displayName, email: user.email };
+    setUserInfoText(state.user.name || state.user.email || '로그인됨');
+    await syncOnLogin();
+  } else {
+    state.user = null;
+    setUserInfoText('로그아웃');
+  }
+  if (state.view === 'settings') renderSettings();
+}
+// 로컬/원격 진도 병합: 카드별로 더 최근에 학습한(=lastSession 큰) 쪽 우선
+function mergeProgress(localP, remoteP) {
+  const out = Object.assign({}, remoteP || {});
+  const lp = localP || {};
+  for (const qid in lp) {
+    const a = lp[qid], b = out[qid];
+    if (!b) { out[qid] = a; continue; }
+    const as = (a.lastSession == null ? -1 : a.lastSession);
+    const bs = (b.lastSession == null ? -1 : b.lastSession);
+    if (as > bs || (as === bs && (a.totalReviews || 0) > (b.totalReviews || 0))) out[qid] = a;
+  }
+  return out;
+}
+async function syncOnLogin() {
+  if (!fbReady || !state.user) return;
+  try {
+    const ref = fbDb.collection("users").doc(state.user.uid);
+    const snap = await ref.get();
+    const remote = snap.exists ? (snap.data() || {}) : {};
+    state.progress = mergeProgress(state.progress, remote.progress || {});
+    state.sessionCount = Math.max(state.sessionCount || 0, remote.sessionCount || 0);
+    saveProgress();
+    showToast("진도를 동기화했어요 ☁️");
+    if (state.view === 'home') navTo('home');
+    else if (state.view === 'settings') renderSettings();
+  } catch (e) {
+    console.error("동기화 실패", e);
+    showToast("동기화 실패 (오프라인일 수 있어요)");
+  }
+}
+function pushToCloud() {
+  if (!fbReady || !state.user) return;
+  if (fbSaveTimer) clearTimeout(fbSaveTimer);
+  fbSaveTimer = setTimeout(function () {
+    fbDb.collection("users").doc(state.user.uid).set({
+      progress: state.progress,
+      sessionCount: state.sessionCount,
+      updatedAt: Date.now()
+    }, { merge: true }).catch(function (e) { console.error("클라우드 저장 실패", e); });
+  }, 1500);
+}
+
 // 세션 기반 간격 (테스트 횟수 단위)
 const INTERVALS = {
   again: 1,    // 다시 → 다음 테스트
@@ -9483,8 +9573,7 @@ function renderSettings() {
        <button class="btn btn-secondary" style="margin-top: 12px;" onclick="signOut()">로그아웃</button>`
     : `<p style="margin-bottom: 12px;">현재 진도는 이 기기에만 저장되고 있어요.</p>
        <p style="font-size: 13px; color: var(--text-light); margin-bottom: 12px;">구글 로그인하면 폰과 PC에서 진도를 자동 동기화할 수 있어요.</p>
-       <button class="btn" onclick="signIn()">🔐 구글로 로그인 (Firebase 설정 후 활성화)</button>
-       <p style="font-size: 12px; color: var(--text-light); margin-top: 14px;">※ 이 프로토타입은 아직 Firebase 설정 전이에요.</p>`;
+       <button class="btn" onclick="signIn()">🔐 구글로 로그인</button>${firebaseConfigured() ? '' : '<p style="font-size: 12px; color: var(--text-light); margin-top: 14px;">※ 아직 Firebase 설정 전이에요. <b>설정_가이드_로그인.md</b>의 안내대로 키를 입력하면 활성화됩니다.</p>'}`;
 
   document.getElementById('viewArea').innerHTML = backBtn('home') + `
     <h2 style="margin-bottom:14px;">설정</h2>
@@ -9529,11 +9618,18 @@ function renderSettings() {
 }
 
 function signIn() {
-  showToast("Firebase 설정이 필요해요.");
+  if (!firebaseConfigured()) { showToast("Firebase 설정이 필요해요 (설정 가이드 참고)"); return; }
+  if (!fbReady) { showToast("로그인 준비 중이에요. 잠시 후 다시 시도해주세요."); return; }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(function (err) {
+    console.error(err);
+    showToast("로그인 실패: " + (err.message || err.code || ""));
+  });
 }
 function signOut() {
+  if (fbReady && fbAuth) fbAuth.signOut();
   state.user = null;
-  document.getElementById('userInfo').textContent = '로그아웃';
+  setUserInfoText('로그아웃');
   if (state.view === 'settings') renderSettings();
 }
 
@@ -9550,6 +9646,7 @@ function saveProgress() {
   } catch(e) {
     console.error('저장 실패', e);
   }
+  pushToCloud();
 }
 function loadProgress() {
   try {
@@ -9788,6 +9885,7 @@ function showToast(msg) {
 // 초기 실행
 // ===========================
 loadProgress();
+initFirebase();  // 설정돼 있으면 로그인 상태 감지 + 동기화 시작
 // 사용자 정보 표시 동기화
 if (state.user) {
   document.getElementById('userInfo').textContent = state.user.name || state.user.email || '로그인됨';
