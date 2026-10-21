@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#f1f3f0">
 <title>성경 문제집 - 매일 공부</title>
 <link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="성경공부">
 <!--
   파일 구성
   - index.html   : 화면 뼈대 (이 파일)
@@ -18,7 +22,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=202610220002">
+<link rel="stylesheet" href="style.css?v=202610220005">
 <!-- Firebase (구글 로그인 + 동기화). 설정값은 app.js의 firebaseConfig -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -41,8 +45,8 @@
 <!-- 숨겨진 input - 진도 가져오기용 -->
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
 
-<script src="questions.js?v=202610220002"></script>
-<script src="app.js?v=202610220002"></script>
+<script src="questions.js?v=202610220005"></script>
+<script src="app.js?v=202610220005"></script>
 <script>
   // 오프라인 지원: 한 번 열어 둔 뒤에는 인터넷이 없어도 앱이 열려요 (https 사이트에서만 동작)
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
