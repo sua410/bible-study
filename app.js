@@ -79,6 +79,7 @@ async function syncOnLogin(silent) {
     state.sessionCount = Math.max(state.sessionCount || 0, remote.sessionCount || 0);
     state.resetAt = resetAt;
     state.meta = mergeMeta(state.meta, remote.meta);
+    repairFirstKnow();
     lastSyncAt = Date.now();
     saveLocal();
     pushToCloud({ all: true });
@@ -171,9 +172,10 @@ const SESS_KEY = "bible_workbook_quiz_sessions";
 const STUDY_DAY_KEY = "bible_workbook_study_day";
 
 // 숙련 단계(1~5)별로 다시 나오는 간격 (퀴즈 세트 단위, 화면에는 표시하지 않음)
-// '알았어요' → 한 단계 위로, '몰랐어요' → 1단계로
+// '알았어요' → 한 단계 위로 (처음 본 문제를 바로 알았으면 3단계부터), '몰랐어요' → 1단계로
 const BOX_GAP = [0, 1, 2, 4, 8, 16];
 const MAX_BOX = 5;
+const FIRST_KNOW_BOX = 3;
 // 한 세트 구성: 새 문제 6 : 복습 4 (모자라면 다른 쪽에서 채움)
 const NEW_PER_SET = 6, REVIEW_PER_SET = 4;
 const GRADE_NAME = { know: "알았어요", dont: "몰랐어요", easy: "알았어요", good: "알았어요", hard: "몰랐어요", again: "몰랐어요" };
@@ -244,6 +246,19 @@ function boxOf(p) {
     default: return 2; // 아주 예전(v1) 기록
   }
 }
+// 2026-10-22 수정: 처음 본 문제를 '알았어요'로 답했는데 1단계로 들어간 기록을 3단계로 바로잡음
+function repairFirstKnow() {
+  let n = 0;
+  Object.values(state.progress).forEach(p => {
+    if (p && p.box === 1 && p.lastGrade === 'know' && (p.totalReviews || 0) === 1 && !(p.lapses > 0)) {
+      p.box = FIRST_KNOW_BOX;
+      p.nextSession = (p.lastSession || 0) + BOX_GAP[FIRST_KNOW_BOX];
+      n++;
+    }
+  });
+  if (n) saveLocal();
+  return n;
+}
 function applyGrade(prog, g) { // g: 'know' | 'dont'
   const prev = boxOf(prog);
   prog.totalReviews += 1;
@@ -251,7 +266,7 @@ function applyGrade(prog, g) { // g: 'know' | 'dont'
   prog.isNew = false;
   let gap;
   if (g === 'know') {
-    prog.box = Math.min(MAX_BOX, prev + 1);
+    prog.box = prev === 0 ? FIRST_KNOW_BOX : Math.min(MAX_BOX, prev + 1);
     gap = BOX_GAP[prog.box];
     // 3번 이상 틀린 문제는 맞혀도 절반 간격으로 (금방 사라지지 않게)
     if ((prog.lapses || 0) >= 3) gap = Math.max(1, Math.ceil(gap / 2));
@@ -490,6 +505,7 @@ function loadProgress() {
       state.sessionCount = data.sessionCount || 0;
       state.resetAt = data.resetAt || 0;
       state.meta = mergeMeta(data.meta, null);
+      repairFirstKnow();
     } else {
       const oldRaw = localStorage.getItem(STORAGE_KEY_OLD);
       if (oldRaw) {
