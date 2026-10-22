@@ -170,9 +170,14 @@ const SETTINGS_KEY = "bible_workbook_settings";
 const SESS_KEY = "bible_workbook_quiz_sessions";
 const STUDY_DAY_KEY = "bible_workbook_study_day";
 
-// 세션 기반 복습 간격 (퀴즈 세트 단위, 화면에는 표시하지 않음)
-const INTERVALS = { again: 1, hard: 3, good: 7, easy: 14 };
-const GRADE_NAME = { again: "다시", hard: "어려움", good: "보통", easy: "쉬움" };
+// 숙련 단계(1~5)별로 다시 나오는 간격 (퀴즈 세트 단위, 화면에는 표시하지 않음)
+// '알았어요' → 한 단계 위로, '몰랐어요' → 1단계로
+const BOX_GAP = [0, 1, 2, 4, 8, 16];
+const MAX_BOX = 5;
+// 한 세트 구성: 새 문제 6 : 복습 4 (모자라면 다른 쪽에서 채움)
+const NEW_PER_SET = 6, REVIEW_PER_SET = 4;
+const GRADE_NAME = { know: "알았어요", dont: "몰랐어요", easy: "알았어요", good: "알았어요", hard: "몰랐어요", again: "몰랐어요" };
+function isKnow(g) { return g === 'know' || g === 'easy' || g === 'good'; }
 
 let state = {
   progress: {},     // {qId: {nextSession, lastSession, totalReviews, lapses, isNew, lastGrade, t}}
@@ -225,17 +230,38 @@ function todayLabel() {
 // 진도 기록
 // ===========================
 function initProgress() {
-  return { nextSession: state.sessionCount, lastSession: -1, totalReviews: 0, lapses: 0, isNew: true, lastGrade: null, consecutiveEasy: 0 };
+  return { nextSession: state.sessionCount, lastSession: -1, totalReviews: 0, lapses: 0, isNew: true, lastGrade: null, consecutiveEasy: 0, box: 0 };
 }
-function applyGrade(prog, g) {
+// 예전 4단계 평가 기록 → 숙련 단계로 변환 (다시 1 · 어려움 2 · 보통 3 · 쉬움 4, 연속 쉬움 2번 이상 5)
+function boxOf(p) {
+  if (!p || p.isNew) return 0;
+  if (p.box) return p.box;
+  switch (p.lastGrade) {
+    case 'again': return 1;
+    case 'hard': return 2;
+    case 'good': return 3;
+    case 'easy': return (p.consecutiveEasy || 0) >= 2 ? 5 : 4;
+    default: return 2; // 아주 예전(v1) 기록
+  }
+}
+function applyGrade(prog, g) { // g: 'know' | 'dont'
+  const prev = boxOf(prog);
   prog.totalReviews += 1;
   prog.lastSession = state.sessionCount;
   prog.isNew = false;
-  if (g === "again") { prog.lapses += 1; prog.consecutiveEasy = 0; }
-  else if (g === "easy") { prog.consecutiveEasy = (prog.consecutiveEasy || 0) + 1; }
-  else prog.consecutiveEasy = 0;
+  let gap;
+  if (g === 'know') {
+    prog.box = Math.min(MAX_BOX, prev + 1);
+    gap = BOX_GAP[prog.box];
+    // 3번 이상 틀린 문제는 맞혀도 절반 간격으로 (금방 사라지지 않게)
+    if ((prog.lapses || 0) >= 3) gap = Math.max(1, Math.ceil(gap / 2));
+  } else {
+    prog.box = 1;
+    prog.lapses = (prog.lapses || 0) + 1;
+    gap = BOX_GAP[1];
+  }
   prog.lastGrade = g;
-  prog.nextSession = state.sessionCount + INTERVALS[g];
+  prog.nextSession = state.sessionCount + gap;
   prog.t = Date.now();
   return prog;
 }
@@ -375,20 +401,23 @@ function buildSet(mode, book) {
   const due = [], fresh = [], rest = [];
   pool.forEach((q, i) => {
     const p = state.progress[q.id];
-    if (!p || p.isNew) fresh.push(q);
-    else if (p.nextSession <= upcoming) due.push({ q, p, i });
-    else rest.push({ q, p, i });
+    if (!p || p.isNew) fresh.push({ q, i });
+    else if (p.nextSession <= upcoming) due.push({ q, p, i, box: boxOf(p) });
+    else rest.push({ q, p, i, box: boxOf(p) });
   });
-  if (mode === 'book') {
-    // 책 별: 문제집 순서대로, 안 푼 문제 먼저
-    due.sort((a, b) => a.i - b.i);
-    rest.sort((a, b) => (a.p.nextSession - b.p.nextSession) || (a.i - b.i));
-    return [...fresh, ...due.map(x => x.q), ...rest.map(x => x.q)].slice(0, QUIZ_SIZE).map(q => q.id);
-  }
-  due.sort((a, b) => a.p.nextSession - b.p.nextSession);
-  shuffle(fresh);
-  rest.sort((a, b) => a.p.nextSession - b.p.nextSession);
-  return [...due.map(x => x.q), ...fresh, ...rest.map(x => x.q)].slice(0, QUIZ_SIZE).map(q => q.id);
+  const ordered = mode === 'book';
+  if (ordered) fresh.sort((a, b) => a.i - b.i); else shuffle(fresh);
+  // 복습: 오래 밀린 것 → 낮은 단계 → (책 별이면) 문제집 순서
+  due.sort((a, b) => (a.p.nextSession - b.p.nextSession) || (a.box - b.box) || (ordered ? a.i - b.i : 0));
+  rest.sort((a, b) => (a.p.nextSession - b.p.nextSession) || (a.box - b.box) || (a.i - b.i));
+  // 새 문제 6 : 복습 4, 한쪽이 모자라면 다른 쪽에서 채우고, 그래도 모자라면 아직 때가 안 된 문제로
+  let nNew = Math.min(NEW_PER_SET, fresh.length), nRev = Math.min(REVIEW_PER_SET, due.length);
+  let left = QUIZ_SIZE - nNew - nRev;
+  const moreRev = Math.min(left, due.length - nRev); nRev += moreRev; left -= moreRev;
+  const moreNew = Math.min(left, fresh.length - nNew); nNew += moreNew; left -= moreNew;
+  let pick = [...fresh.slice(0, nNew), ...due.slice(0, nRev), ...rest.slice(0, Math.max(0, left))];
+  if (ordered) pick.sort((a, b) => a.i - b.i); else shuffle(pick);
+  return pick.map(x => x.q.id);
 }
 
 function loadSessions() {
@@ -1062,7 +1091,7 @@ function checkMultiple() {
   });
   document.getElementById('checkBtn').style.display = 'none';
   const ok = selectedOption === ci;
-  showGradeButtons(ok ? '<div class="result ok">✓ 맞았어요!</div>' : '<div class="result no">✗ 틀렸어요. 정답을 확인하고 평가해 주세요.</div>');
+  showGradeButtons(ok ? '<div class="result ok">✓ 맞았어요! 찍어서 맞혔다면 \'몰랐어요\'를 눌러 주세요.</div>' : '<div class="result no">✗ 틀렸어요. 정답을 확인해 주세요.</div>', ok ? 'know' : 'dont');
 }
 function revealAnswer() {
   if (revealed) return;
@@ -1080,14 +1109,13 @@ function revealAnswer() {
   }
   showGradeButtons(ans);
 }
-function showGradeButtons(prefix) {
+function showGradeButtons(prefix, auto) {
+  // auto: 객관식 채점 결과 (미리 선택 표시)
   document.getElementById('answerArea').innerHTML = (prefix || '') + `
-    <div class="grade-help">얼마나 잘 알고 있었나요? 솔직하게 고르면 복습 순서가 더 정확해져요.</div>
+    ${auto ? '' : '<div class="grade-help">정답을 떠올렸나요? 솔직하게 고르면 몰랐던 문제가 더 자주 나와요.</div>'}
     <div class="grades">
-      <button class="g-again" onclick="gradeQ('again')">다시</button>
-      <button class="g-hard" onclick="gradeQ('hard')">어려움</button>
-      <button class="g-good" onclick="gradeQ('good')">보통</button>
-      <button class="g-easy" onclick="gradeQ('easy')">쉬움</button>
+      <button class="g-dont ${auto === 'dont' ? 'auto' : ''}" onclick="gradeQ('dont')">몰랐어요</button>
+      <button class="g-know ${auto === 'know' ? 'auto' : ''}" onclick="gradeQ('know')">알았어요</button>
     </div>`;
 }
 function gradeQ(g) {
@@ -1114,19 +1142,17 @@ function gradeQ(g) {
 VIEWS.quizDone = function (r) {
   const s = sessions[r.key];
   if (!s) return VIEWS.quizHome();
-  const c = { easy: 0, good: 0, hard: 0, again: 0 };
-  Object.values(s.results).forEach(x => { if (c[x.g] !== undefined) c[x.g]++; });
+  const c = { know: 0, dont: 0 };
+  Object.values(s.results).forEach(x => { c[isKnow(x.g) ? 'know' : 'dont']++; });
   return `
     <div class="qbar"><span style="width:40px"></span><div class="c">${escapeHtml(quizTitle(s))}</div><button class="ib" onclick="finishQuiz()" aria-label="닫기">✕</button></div>
     <div class="done">
       <div class="e">🎉</div>
       <h2>${s.ids.length}문제 완료!</h2>
       <p>${s.mode === 'random' ? '오늘의 퀴즈를 마쳤어요' : '한 세트를 마쳤어요'}</p>
-      <div class="sum">
-        <div><b style="color:var(--easy)">${c.easy}</b>쉬움</div>
-        <div><b style="color:#5f8f6c">${c.good}</b>보통</div>
-        <div><b style="color:#c39345">${c.hard}</b>어려움</div>
-        <div><b style="color:var(--again)">${c.again}</b>다시</div>
+      <div class="sum two">
+        <div><b style="color:var(--primary)">${c.know}</b>알았어요</div>
+        <div><b style="color:var(--again)">${c.dont}</b>몰랐어요</div>
       </div>
       <button class="btn" onclick="continueQuiz('${r.key.replace(/'/g, "\\'")}', '${r.from || 'quizHome'}')">계속 풀기 (${QUIZ_SIZE}문제 더)</button>
       <button class="btn secondary" onclick="finishQuiz()">완료</button>
