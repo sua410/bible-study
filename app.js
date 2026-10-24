@@ -160,7 +160,10 @@ const QNUM = {};
 BOOKS.forEach(b => QBY[b].forEach((q, i) => { QNUM[q.id] = i + 1; }));
 
 const TYPE_LABEL = { multiple: "객관식", fill: "빈칸", short: "주관식", verse: "암송" };
-const QUIZ_SIZE = 10;
+const CHUNK = 10;          // 문제를 10개씩 이어 붙여 출제 (복습 간격 계산도 10문제 = 1세트 단위)
+// 한 번에 풀 문제 수 (설정): 0 = 계속 반복
+function quizTarget() { const q = state.meta.quizSize; const n = q && typeof q.n === 'number' ? q.n : 10; return n >= 0 ? n : 10; }
+function perSetText(n) { n = n === undefined ? quizTarget() : n; return n === 0 ? '계속 반복' : n + '문제'; }
 
 // ===========================
 // 상태
@@ -190,6 +193,7 @@ let state = {
     range: { books: null, u: 0 },      // 오늘의 퀴즈 범위 (null = 전체)
     vrange: { ids: null, u: 0 },       // 암송 퀴즈 범위: 구절 id 목록 (null = 전체, 빈칸연습·테스트 공통)
     dday: { title: "", date: "", u: 0 },
+    quizSize: { n: 10, u: 0 },          // 한 번에 풀 문제 수 (0 = 계속 반복)
     streak: { last: "", count: 0 }      // 연속 공부
   }
 };
@@ -198,7 +202,7 @@ let sessions = {};  // 진행 중인 퀴즈 세트 (기기별)
 let route = { view: 'home' };
 
 function defaultMeta() {
-  return { range: { books: null, u: 0 }, vrange: { ids: null, u: 0 }, dday: { title: "", date: "", u: 0 }, streak: { last: "", count: 0 } };
+  return { range: { books: null, u: 0 }, vrange: { ids: null, u: 0 }, dday: { title: "", date: "", u: 0 }, quizSize: { n: 10, u: 0 }, streak: { last: "", count: 0 } };
 }
 function mergeMeta(local, remote) {
   const a = Object.assign(defaultMeta(), local || {});
@@ -207,7 +211,7 @@ function mergeMeta(local, remote) {
   const sa = a.streak || {}, sb = b.streak || {};
   let streak = sa;
   if ((sb.last || "") > (sa.last || "") || (sb.last === sa.last && (sb.count || 0) > (sa.count || 0))) streak = sb;
-  return { range: pick(a.range, b.range), vrange: pick(a.vrange, b.vrange), dday: pick(a.dday, b.dday), streak: streak };
+  return { range: pick(a.range, b.range), vrange: pick(a.vrange, b.vrange), quizSize: pick(a.quizSize, b.quizSize), dday: pick(a.dday, b.dday), streak: streak };
 }
 
 // ===========================
@@ -407,14 +411,19 @@ const QUIZ_MODES = {
 function sessKey(mode, book) { return mode === 'book' ? 'book:' + book : mode; }
 function shuffle(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
 
-function buildSet(mode, book) {
+// size: 이번에 만들 문제 수, avoid: 이번 퀴즈에서 이미 '알았어요'로 답한 문제 (범위가 남아 있으면 다시 내지 않음)
+function buildSet(mode, book, size, avoid, lastId) {
+  size = size || CHUNK;
   const upcoming = state.sessionCount + 1;
   let pool;
   if (mode === 'random') pool = [].concat(...rangeBooks('q').map(b => QBY[b]));
   else if (mode === 'book') pool = (QBY[book] || []).slice();
   else pool = rangeVerses();
-  const due = [], fresh = [], rest = [];
+  if (!pool.length) return [];
+  const avoidSet = new Set(avoid || []);
+  const due = [], fresh = [], rest = [], held = [];
   pool.forEach((q, i) => {
+    if (avoidSet.has(q.id)) { const p = state.progress[q.id]; held.push({ q, p, i, box: boxOf(p) }); return; }
     const p = state.progress[q.id];
     if (!p || p.isNew) fresh.push({ q, i });
     else if (p.nextSession <= upcoming) due.push({ q, p, i, box: boxOf(p) });
@@ -427,34 +436,77 @@ function buildSet(mode, book) {
   rest.sort((a, b) => (a.p.nextSession - b.p.nextSession) || (a.box - b.box) || (a.i - b.i));
   // 새 문제 6 : 복습 4, 한쪽이 모자라면 다른 쪽에서 채우고, 그래도 모자라면 아직 때가 안 된 문제로
   let nNew = Math.min(NEW_PER_SET, fresh.length), nRev = Math.min(REVIEW_PER_SET, due.length);
-  let left = QUIZ_SIZE - nNew - nRev;
+  let left = size - nNew - nRev;
   const moreRev = Math.min(left, due.length - nRev); nRev += moreRev; left -= moreRev;
   const moreNew = Math.min(left, fresh.length - nNew); nNew += moreNew; left -= moreNew;
   let pick = [...fresh.slice(0, nNew), ...due.slice(0, nRev), ...rest.slice(0, Math.max(0, left))];
+  left -= Math.min(Math.max(0, left), rest.length);
+  if (left > 0 && held.length) {
+    // 범위 안 문제를 다 냈으면 이번 퀴즈에서 이미 푼 문제를 다시 냄 (다시 볼 때가 가까운 것부터)
+    held.sort((a, b) => ((a.p && a.p.nextSession) || 0) - ((b.p && b.p.nextSession) || 0) || (a.i - b.i));
+    pick = pick.concat(held.slice(0, left)); left -= Math.min(left, held.length);
+  }
   if (ordered) pick.sort((a, b) => a.i - b.i); else shuffle(pick);
-  return pick.map(x => x.q.id);
+  let ids = pick.map(x => x.q.id);
+  // 범위의 문제 수보다 많이 풀어야 하면 처음부터 다시 돌아가며 반복 (같은 문제가 연달아 나오지 않게)
+  if (ids.length < size) {
+    const base = ids.length ? ids.slice() : pool.map(q => q.id);
+    let k = 0;
+    while (ids.length < size) {
+      const id = base[k % base.length]; k++;
+      if (base.length > 1 && ids.length && ids[ids.length - 1] === id) continue;
+      ids.push(id);
+      if (k > size * 4) break;
+    }
+  }
+  if (lastId && ids.length > 1 && ids[0] === lastId) { const t = ids[0]; ids[0] = ids[1]; ids[1] = t; }
+  return ids.slice(0, size);
 }
 
 function loadSessions() {
   try { sessions = JSON.parse(localStorage.getItem(SESS_KEY)) || {}; } catch (e) { sessions = {}; }
-  // 문제 데이터에서 사라진 문제는 정리
   Object.keys(sessions).forEach(k => {
     const s = sessions[k];
     if (!s || !Array.isArray(s.ids)) { delete sessions[k]; return; }
-    s.ids = s.ids.filter(id => QMAP[id]);
+    // 예전 형식(문제 id별 결과) → 순서별 결과로 변환
+    if (!Array.isArray(s.res)) { const r = s.results || {}; s.res = s.ids.map(id => r[id] || null); s.target = s.ids.length; delete s.results; }
+    if (typeof s.target !== 'number') s.target = s.ids.length;
+    // 문제 데이터에서 사라진 문제는 정리
+    const keep = s.ids.map((id, i) => QMAP[id] ? i : -1).filter(i => i >= 0);
+    s.ids = keep.map(i => s.ids[i]); s.res = keep.map(i => s.res[i] || null);
     if (!s.ids.length) delete sessions[k];
   });
 }
 function saveSessions() { try { localStorage.setItem(SESS_KEY, JSON.stringify(sessions)); } catch (e) {} }
-function answeredCount(s) { return s.ids.filter(id => s.results[id]).length; }
+function answeredCount(s) { return s.res.filter(Boolean).length; }
+function sessionDone(s) {
+  const n = answeredCount(s);
+  if (s.target === 0) return false;              // 계속 반복: 끝이 없음
+  return n >= s.target || (n >= s.ids.length && !canExtend(s));
+}
+function canExtend(s) { return s.target === 0 || s.ids.length < s.target; }
 function activeSession(key) {
   const s = sessions[key];
-  return (s && answeredCount(s) < s.ids.length) ? s : null;
+  return (s && !sessionDone(s)) ? s : null;
+}
+// 다음 10문제를 이어 붙임 (새 복습 세트로 침)
+function extendSession(s) {
+  const want = s.target === 0 ? CHUNK : Math.min(CHUNK, s.target - s.ids.length);
+  if (want <= 0) return false;
+  const known = s.ids.filter((id, i) => s.res[i] && isKnow(s.res[i].g));
+  const more = buildSet(s.mode, s.book, want, known, s.ids[s.ids.length - 1]);
+  if (!more.length) return false;
+  s.ids = s.ids.concat(more);
+  s.res = s.res.concat(more.map(() => null));
+  s.counted = false;
+  return true;
 }
 function newSession(mode, book) {
-  const ids = buildSet(mode, book);
+  const target = quizTarget();
+  const first = target === 0 ? CHUNK : Math.min(CHUNK, target);
+  const ids = buildSet(mode, book, first);
   if (!ids.length) return null;
-  const s = { mode, book: book || null, ids, results: {}, view: 0, counted: false, created: Date.now() };
+  const s = { mode, book: book || null, ids, res: ids.map(() => null), target, view: 0, counted: false, created: Date.now() };
   sessions[sessKey(mode, book)] = s;
   saveSessions();
   return s;
@@ -464,6 +516,7 @@ function startQuiz(mode, book, from) {
   let s = activeSession(key);
   if (!s) s = newSession(mode, book);
   if (!s) { showToast("풀 문제가 없어요"); return; }
+  if (answeredCount(s) >= s.ids.length) extendSession(s);
   s.view = answeredCount(s); // 이어서: 아직 안 푼 문제부터
   saveSessions();
   go({ view: 'quizRun', key, from: from || 'quizHome' });
@@ -474,8 +527,16 @@ function continueQuiz(key, from) {
   delete sessions[key];
   const s = newSession(old.mode, old.book);
   if (!s) { showToast("더 풀 문제가 없어요"); return go({ view: from || 'quizHome' }); }
-  showToast("다음 10문제 시작");
+  showToast(s.target === 0 ? "다시 시작해요" : `다음 ${s.target}문제 시작`);
   go({ view: 'quizRun', key, from });
+}
+function progressText(s) {
+  const n = answeredCount(s);
+  return s.target === 0 ? `${n}문제 풀었어요` : `${n} / ${s.target} 풀었어요`;
+}
+function progressPct(s) {
+  const n = answeredCount(s);
+  return s.target === 0 ? Math.round((n % CHUNK) / CHUNK * 100) : Math.round(n / s.target * 100);
 }
 
 // ===========================
@@ -572,8 +633,8 @@ VIEWS.home = function () {
         <div><div class="qz-lab">TODAY'S QUIZ</div><div class="qz-t">오늘의 퀴즈</div></div>
         <button class="chip" onclick="openRangeSheet('q')">범위 · ${escapeHtml(rangeLabel('q'))} ›</button>
       </div>
-      <div class="qz-s">${QUIZ_SIZE}문제 · 복습할 문제를 먼저 내드려요</div>
-      ${s ? `<div class="qz-prog"><div class="bar"><i style="width:${Math.round(done / s.ids.length * 100)}%"></i></div><span>${done} / ${s.ids.length} 풀었어요</span></div>` : ''}
+      <div class="qz-s">${perSetText()} · 복습할 문제를 먼저 내드려요</div>
+      ${s ? `<div class="qz-prog"><div class="bar"><i style="width:${progressPct(s)}%"></i></div><span>${progressText(s)}</span></div>` : ''}
       <button class="btn" onclick="startQuiz('random', null, 'home')">${s ? '이어 풀기' : '시작하기'}</button>
     </div>`;
 
@@ -651,8 +712,8 @@ function openRangeSheet(kind) {
   rangeKind = kind === 'v' ? 'v' : 'q';
   rangeDraft = rangeBooks(rangeKind).slice();
   const head = rangeKind === 'v'
-    ? `<h3>암송 범위</h3><div class="desc">선택한 책의 구절로 ${QUIZ_SIZE}개씩 나와요 · 빈칸연습과 테스트에 함께 적용돼요</div>`
-    : `<h3>오늘의 퀴즈 범위</h3><div class="desc">선택한 책에서 ${QUIZ_SIZE}문제씩 나와요 · 홈과 퀴즈 탭에 함께 적용돼요</div>`;
+    ? `<h3>암송 범위</h3><div class="desc">선택한 책의 구절이 나와요 · 빈칸연습과 테스트에 함께 적용돼요</div>`
+    : `<h3>오늘의 퀴즈 범위</h3><div class="desc">선택한 책에서 문제가 나와요 · 홈과 퀴즈 탭에 함께 적용돼요</div>`;
   openSheet(head + '<div id="rangeBody"></div>');
   drawRange();
 }
@@ -970,14 +1031,14 @@ document.addEventListener('keydown', e => {
 VIEWS.quizHome = function () {
   const s = activeSession('random');
   const sb = activeSession('vblank'), st = activeSession('vtest');
-  const resume = (x) => (x && answeredCount(x) > 0) ? `<br><b>이어 풀기 ${answeredCount(x)}/${x.ids.length}</b>` : '';
+  const resume = (x) => (x && answeredCount(x) > 0) ? `<br><b>이어 풀기 · ${progressText(x)}</b>` : '';
   return `
     <div class="page-hd"><div><h1>퀴즈</h1></div></div>
     <div class="menu" role="button" tabindex="0" onclick="startQuiz('random', null, 'quizHome')"><div class="mi">📝</div>
-      <div style="min-width:0"><div class="tt">오늘의 퀴즈</div><div class="dd">범위 안에서 ${QUIZ_SIZE}문제씩 · 홈과 같은 퀴즈예요${resume(s)}</div>
+      <div style="min-width:0"><div class="tt">오늘의 퀴즈</div><div class="dd">범위 안에서 ${perSetText()}${quizTarget() ? '씩' : ''} · 홈과 같은 퀴즈예요${resume(s)}</div>
         <button class="chip" style="margin-top:8px" onclick="event.stopPropagation(); openRangeSheet('q')">범위 · ${escapeHtml(rangeLabel('q'))} ›</button></div><div class="ar">›</div></div>
     <button class="menu" onclick="go({view:'quizBooks'})"><div class="mi">📚</div>
-      <div><div class="tt">성경 별 문제 풀기</div><div class="dd">한 권을 골라 순서대로 ${QUIZ_SIZE}문제씩</div></div><div class="ar">›</div></button>
+      <div><div class="tt">성경 별 문제 풀기</div><div class="dd">한 권을 골라 순서대로 ${perSetText()}${quizTarget() ? '씩' : ''}</div></div><div class="ar">›</div></button>
     <div class="sec-title" style="display:flex;justify-content:space-between;align-items:center;margin-top:24px">
       <span>암송</span><button class="chip" onclick="openRangeSheet('v')">암송 범위 · ${escapeHtml(rangeLabel('v'))} ›</button></div>
     <button class="menu" onclick="startQuiz('vblank', null, 'quizHome')"><div class="mi warm">✏️</div>
@@ -993,11 +1054,11 @@ VIEWS.quizBooks = function () {
     let s = activeSession(sessKey('book', b));
     if (s && !answeredCount(s)) s = null;
     return `<button class="bk" onclick="startQuiz('book', BOOKS[${BOOKS.indexOf(b)}], 'quizBooks')">
-      <div class="nm">${b}</div><div class="ct">${s ? `<b>이어 풀기 ${answeredCount(s)}/${s.ids.length}</b>` : `${seen} / ${list.length} 풀었어요`}</div></button>`;
+      <div class="nm">${b}</div><div class="ct">${s ? `<b>이어 풀기 · ${progressText(s)}</b>` : `${seen} / ${list.length} 풀었어요`}</div></button>`;
   }).join('');
   return `<button class="back" onclick="go({view:'quizHome'})">‹ 퀴즈</button>
     <div class="title-lg">성경 별 문제 풀기</div>
-    <div class="subtitle">문제집 순서대로, 안 푼 문제부터 ${QUIZ_SIZE}문제씩 나와요</div>
+    <div class="subtitle">문제집 순서대로, 안 푼 문제부터 나와요 · ${perSetText()}${quizTarget() ? '씩' : ''}</div>
     ${testamentPills(quizTestament, 'setQuizTestament')}
     <div class="grid2">${grid}</div>`;
 };
@@ -1013,16 +1074,18 @@ function exitQuiz() {
 VIEWS.quizRun = function (r) {
   const s = sessions[r.key];
   if (!s) return VIEWS.quizHome();
+  if (answeredCount(s) >= s.ids.length && canExtend(s)) { extendSession(s); saveSessions(); }
   const total = s.ids.length, cur = answeredCount(s);
   const vi = Math.max(0, Math.min(s.view, cur, total - 1));
   s.view = vi;
   const q = QMAP[s.ids[vi]];
-  const res = s.results[q.id];
-  const pct = Math.round(cur / total * 100);
+  const res = s.res[vi];
+  const pct = progressPct(s);
+  const counter = s.target === 0 ? `${vi + 1}번째` : `${vi + 1} / ${s.target}`;
   let h = `
     <div class="qbar">
       <button class="ib" onclick="quizPrev()" ${vi <= 0 ? 'disabled' : ''} aria-label="이전 문제">‹</button>
-      <div class="c">${escapeHtml(quizTitle(s))} · ${vi + 1} / ${total}</div>
+      <div class="c">${escapeHtml(quizTitle(s))} · ${counter}</div>
       <button class="ib" onclick="exitQuiz()" aria-label="나가기">✕</button>
     </div>
     <div class="bar" style="margin-bottom:14px"><i style="width:${pct}%"></i></div>`;
@@ -1137,40 +1200,40 @@ function showGradeButtons(prefix, auto) {
 function gradeQ(g) {
   const key = route.key, s = sessions[key];
   if (!s) return;
-  const q = QMAP[s.ids[s.view]];
-  if (s.results[q.id]) return;
+  const vi = s.view, q = QMAP[s.ids[vi]];
+  if (s.res[vi]) return;
   if (!s.counted) { state.sessionCount += 1; s.counted = true; }
   let p = state.progress[q.id] || initProgress();
   state.progress[q.id] = applyGrade(p, g);
   const ta = document.getElementById('userAnswer');
-  s.results[q.id] = { g, pick: q.type === 'multiple' ? selectedOption : undefined, typed: ta && ta.value.trim() ? ta.value.trim().slice(0, 200) : undefined };
-  s.view = answeredCount(s);
+  s.res[vi] = { g, pick: q.type === 'multiple' ? selectedOption : undefined, typed: ta && ta.value.trim() ? ta.value.trim().slice(0, 200) : undefined };
+  const n = answeredCount(s);
+  s.view = n;
+  // 연속 공부: 10문제(또는 설정한 수가 더 적으면 그만큼)를 풀면 인정
+  if (n >= Math.min(CHUNK, s.target || CHUNK)) creditToday();
+  if (n >= s.ids.length && canExtend(s)) extendSession(s);
   saveSessions();
   saveProgress(q.id);
-  if (answeredCount(s) >= s.ids.length) {
-    creditToday();
-    go({ view: 'quizDone', key, from: route.from });
-  } else {
-    go(Object.assign({}, route));
-  }
+  if (sessionDone(s)) go({ view: 'quizDone', key, from: route.from });
+  else go(Object.assign({}, route));
 }
 
 VIEWS.quizDone = function (r) {
   const s = sessions[r.key];
   if (!s) return VIEWS.quizHome();
   const c = { know: 0, dont: 0 };
-  Object.values(s.results).forEach(x => { c[isKnow(x.g) ? 'know' : 'dont']++; });
+  s.res.forEach(x => { if (x) c[isKnow(x.g) ? 'know' : 'dont']++; });
   return `
     <div class="qbar"><span style="width:40px"></span><div class="c">${escapeHtml(quizTitle(s))}</div><button class="ib" onclick="finishQuiz()" aria-label="닫기">✕</button></div>
     <div class="done">
       <div class="e">🎉</div>
-      <h2>${s.ids.length}문제 완료!</h2>
+      <h2>${answeredCount(s)}문제 완료!</h2>
       <p>${s.mode === 'random' ? '오늘의 퀴즈를 마쳤어요' : '한 세트를 마쳤어요'}</p>
       <div class="sum two">
         <div><b style="color:var(--primary)">${c.know}</b>알았어요</div>
         <div><b style="color:var(--again)">${c.dont}</b>몰랐어요</div>
       </div>
-      <button class="btn" onclick="continueQuiz('${r.key.replace(/'/g, "\\'")}', '${r.from || 'quizHome'}')">계속 풀기 (${QUIZ_SIZE}문제 더)</button>
+      <button class="btn" onclick="continueQuiz('${r.key.replace(/'/g, "\\'")}', '${r.from || 'quizHome'}')">계속 풀기 (${perSetText(s.target)} 더)</button>
       <button class="btn secondary" onclick="finishQuiz()">완료</button>
     </div>`;
 };
@@ -1195,6 +1258,9 @@ VIEWS.settings = function () {
   return `
     <div class="page-hd"><div><h1>설정</h1></div></div>
     <div class="card set-card"><h3>계정</h3>${authHtml}</div>
+    <div class="card set-card"><h3>한 번에 풀 문제 수</h3>
+      <p class="muted" style="margin-bottom:4px">퀴즈를 시작하면 이만큼 풀고 끝나요. 범위의 문제보다 많으면 처음부터 돌아가며 반복해서 나와요.</p>
+      <div id="sizeBox"></div></div>
     <div class="card set-card"><h3>시험 D-day</h3>
       <p class="muted" style="margin-bottom:12px">${dd ? `${escapeHtml(dd.title)} · <b style="color:var(--primary-dark)">${dd.label}</b>` : '설정된 D-day가 없어요'}</p>
       <button class="btn light sm" onclick="openDdaySheet()">${dd ? 'D-day 수정' : 'D-day 정하기'}</button></div>
@@ -1211,7 +1277,39 @@ VIEWS.settings = function () {
       <button class="btn secondary sm" onclick="document.getElementById('importFile').click()">진도 가져오기</button>
       <button class="btn danger sm" onclick="resetProgress()">진도 초기화</button></div>`;
 };
-AFTER.settings = function () { updateNotifStatus(); };
+AFTER.settings = function () { updateNotifStatus(); drawSizeBox(); };
+let sizeCustomOpen = false;
+function drawSizeBox() {
+  const box = document.getElementById('sizeBox'); if (!box) return;
+  const n = quizTarget();
+  const isCustom = sizeCustomOpen || (n !== 10 && n !== 20 && n !== 0);
+  box.innerHTML = `
+    <div class="quick3">
+      <button class="${n === 10 && !isCustom ? 'on' : ''}" onclick="setQuizSize(10)">10개</button>
+      <button class="${n === 20 && !isCustom ? 'on' : ''}" onclick="setQuizSize(20)">20개</button>
+      <button class="${n === 0 && !isCustom ? 'on' : ''}" onclick="setQuizSize(0)">계속 반복</button>
+      <button class="${isCustom ? 'on' : ''}" onclick="openCustomSize()">직접 입력</button>
+    </div>
+    ${isCustom ? `<div class="set-row">
+      <input type="number" id="sizeInput" inputmode="numeric" min="1" max="999" value="${n !== 0 ? n : ''}" placeholder="예: 30" class="size-inp">
+      <span class="muted">문제</span>
+      <button class="btn sm" style="width:auto;padding:10px 16px;margin-left:auto" onclick="saveCustomSize()">저장</button></div>` : ''}
+    <p class="muted" style="margin-top:10px">지금 설정: <b style="color:var(--primary-dark)">${n === 0 ? '계속 반복 (✕로 나갈 때까지)' : n + '문제'}</b></p>`;
+}
+function openCustomSize() { sizeCustomOpen = true; drawSizeBox(); const el = document.getElementById('sizeInput'); if (el) el.focus(); }
+function setQuizSize(n) {
+  sizeCustomOpen = false;
+  state.meta.quizSize = { n, u: Date.now() };
+  saveLocal(); pushToCloud();
+  drawSizeBox();
+  const running = ['random', 'vblank', 'vtest'].some(k => activeSession(k) && answeredCount(activeSession(k)) > 0);
+  showToast(running ? "저장했어요 · 풀던 퀴즈가 끝나면 적용돼요" : "저장했어요");
+}
+function saveCustomSize() {
+  const v = parseInt((document.getElementById('sizeInput') || {}).value, 10);
+  if (!v || v < 1 || v > 999) { showToast("1에서 999 사이의 숫자를 넣어 주세요"); return; }
+  setQuizSize(v);
+}
 
 function signIn() {
   if (!firebaseConfigured()) { showToast("Firebase 설정이 필요해요"); return; }

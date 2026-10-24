@@ -272,3 +272,5 @@ textarea.ua:focus { outline: none; border-color: var(--primary); }
 .cb.on { background: var(--primary); border-color: var(--primary); }
 .cb.part { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
 .sheet-foot { position: sticky; bottom: calc(-24px - var(--safe-b)); background: #fff; padding: 14px 0 calc(24px + var(--safe-b)); margin: 8px 0 calc(-24px - var(--safe-b)); box-shadow: 0 -10px 14px -10px rgba(0,0,0,.12); }
+.size-inp { width: 110px; border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 16px; font-weight: 700; }
+.size-inp:focus { outline: none; border-color: var(--primary); }
